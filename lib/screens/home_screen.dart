@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'camera_permission_screen.dart'; // Pantalla para gestionar los permisos de cámara
+import 'video_recording_screen.dart'; // Pantalla de grabación de video
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool isFirstTime = true; // Indicador para saber si es la primera vez que se accede
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -17,19 +27,50 @@ class HomeScreen extends StatelessWidget {
             ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                // Acción para grabar video, puedes cambiar esto según la funcionalidad que quieras
+              onPressed: () async {
+                if (isFirstTime) {
+                  await _requestCameraPermission();
+                } else {
+                  _navigateToVideoRecording(context);
+                }
               },
               child: Text('Grabar Video'),
             ),
             ElevatedButton(
               onPressed: () {
-                // Acción para ver traducción, puedes cambiar esto según la funcionalidad que quieras
+                // Acción para ver traducción
               },
               child: Text('Ver Traducción'),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _requestCameraPermission() async {
+    // Navegar a la pantalla de solicitud de permisos de cámara
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CameraPermissionScreen(),
+      ),
+    );
+
+    if (result == true) {
+      // Si el usuario acepta los permisos
+      setState(() {
+        isFirstTime = false;
+      });
+      _navigateToVideoRecording(context);
+    }
+  }
+
+  void _navigateToVideoRecording(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VideoRecordingScreen(),
       ),
     );
   }

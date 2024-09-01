@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:quiputalk/screens/home_screen.dart'; // Asegúrate de importar tu HomeScreen
+import 'package:quiputalk/screens/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -14,33 +14,47 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   _navigateToHome() async {
-    await Future.delayed(Duration(seconds: 3), () {}); // Delay de 3 segundos
+    await Future.delayed(Duration(seconds: 3), () {});
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => HomeScreen()), // Navega a HomeScreen
+      MaterialPageRoute(builder: (context) => HomeScreen()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue, // Puedes cambiar el color
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset('assets/logo.png'), // Asegúrate de tener tu logo en assets
-            SizedBox(height: 20),
-            Text(
-              'Quipu Talk',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Fondo de color sólido
+          Container(
+            color: Colors.blue, // Usa el color de fondo que prefieras
+          ),
+          // Imagen de fondo encima del color sólido
+          Image.asset(
+            "assets/background.png",
+            fit: BoxFit.cover,
+          ),
+          // Logo y texto en el centro
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset('assets/logo.png'),
+                SizedBox(height: 20),
+                Text(
+                  'Quipu Talk',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
