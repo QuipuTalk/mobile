@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'camera_permission_screen.dart'; // Pantalla para gestionar los permisos de cámara
 import 'video_recording_screen.dart'; // Pantalla de grabación de video
+import 'video_list_screen.dart'; // Pantalla para listar y reproducir videos grabados
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -41,6 +42,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Acción para ver traducción
               },
               child: Text('Ver Traducción'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Acción para ver todos los videos grabados
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => VideoListScreen(),
+                  ),
+                );
+              },
+              child: Text('Ver Videos Grabados'),
             ),
           ],
         ),

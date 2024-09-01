@@ -30,7 +30,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+  camera: ^0.10.0+1
+  path_provider: ^2.0.11  # Añadir esta línea
+  path: ^1.8.3  # Añadir esta línea también para trabajar con rutas
+  video_player: ^2.2.19
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
