@@ -1,11 +1,13 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:camera/camera.dart';
+import 'package:flutter/material.dart';
 import 'package:path/path.dart' show join;
 import 'package:path_provider/path_provider.dart';
-import 'dart:async';
-import 'dart:io';
 
 class VideoRecordingScreen extends StatefulWidget {
+  const VideoRecordingScreen({super.key});
+
   @override
   _VideoRecordingScreenState createState() => _VideoRecordingScreenState();
 }
@@ -22,10 +24,10 @@ class _VideoRecordingScreenState extends State<VideoRecordingScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeCamera();
+    _initializeControllerFuture = _initializeCamera();
   }
 
-  void _initializeCamera() async {
+  Future<void> _initializeCamera() async {
     final cameras = await availableCameras();
     final camera = cameras.first;
 
@@ -34,8 +36,8 @@ class _VideoRecordingScreenState extends State<VideoRecordingScreen> {
       ResolutionPreset.high,
     );
 
-    _initializeControllerFuture = _controller!.initialize();
-    setState(() {});
+    await _controller!.initialize(); // Asegúrate de que la inicialización se complete
+    setState(() {}); // Notifica a Flutter que el estado ha cambiado
   }
 
   @override
@@ -49,7 +51,7 @@ class _VideoRecordingScreenState extends State<VideoRecordingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Grabar Video'),
+        title: const Text('Grabar Video'),
       ),
       body: FutureBuilder<void>(
         future: _initializeControllerFuture,
@@ -77,9 +79,9 @@ class _VideoRecordingScreenState extends State<VideoRecordingScreen> {
                     children: [
                       Text(
                         _formattedTime,
-                        style: TextStyle(color: Colors.white, fontSize: 18),
+                        style: const TextStyle(color: Colors.white, fontSize: 18),
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       FloatingActionButton(
                         onPressed: _isRecording ? _stopVideoRecording : _startVideoRecording,
                         backgroundColor: Colors.red,
@@ -94,7 +96,7 @@ class _VideoRecordingScreenState extends State<VideoRecordingScreen> {
               ],
             );
           } else {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
         },
       ),
@@ -150,7 +152,7 @@ class _VideoRecordingScreenState extends State<VideoRecordingScreen> {
   }
 
   void _startTimer() {
-    _timer = Timer.periodic(Duration(seconds: 1), (Timer timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (Timer timer) {
       setState(() {
         _recordDuration++;
         _formattedTime = _formatDuration(_recordDuration);
