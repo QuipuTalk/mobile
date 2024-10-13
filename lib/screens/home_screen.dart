@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'camera_permission_screen.dart'; // Pantalla para gestionar los permisos de cámara
-import 'video_recording_screen.dart'; // Pantalla de grabación de video
-import 'video_list_screen.dart'; // Pantalla para listar y reproducir videos grabados
+import 'package:quiputalk/screens/camera/camera_screen.dart';
 
+import 'camera/camera_permission_screen.dart'; // Pantalla para gestionar los permisos de cámara
+import 'unused-screens/video_list_screen.dart'; // Pantalla para listar y reproducir videos grabados
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -16,17 +17,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Home Screen'),
+        title: const Text('Home Screen'),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text(
+            const Text(
               'Bienvenido a Quipu Talk',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
                 if (isFirstTime) {
@@ -35,13 +36,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   _navigateToVideoRecording(context);
                 }
               },
-              child: Text('Grabar Video'),
+              child: const Text('Grabar Video'),
             ),
             ElevatedButton(
               onPressed: () {
                 // Acción para ver traducción
               },
-              child: Text('Ver Traducción'),
+              child: const Text('Ver Traducción'),
             ),
             ElevatedButton(
               onPressed: () {
@@ -53,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 );
               },
-              child: Text('Ver Videos Grabados'),
+              child: const Text('Ver Videos Grabados'),
             ),
           ],
         ),
@@ -66,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CameraPermissionScreen(),
+        builder: (context) => const CameraPermissionScreen(),
       ),
     );
 
@@ -83,7 +84,8 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => VideoRecordingScreen(),
+        //builder: (context) => VideoRecordingScreen(),
+        builder: (context)=> const CameraScreen()
       ),
     );
   }

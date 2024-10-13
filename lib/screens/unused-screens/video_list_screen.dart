@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'dart:io';
+
 import 'video_player_screen.dart'; // Importa la pantalla de reproducción de video
 
 class VideoListScreen extends StatefulWidget {
+  const VideoListScreen({super.key});
+
   @override
   _VideoListScreenState createState() => _VideoListScreenState();
 }
@@ -36,7 +40,7 @@ class _VideoListScreenState extends State<VideoListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Videos Grabados')),
+      appBar: AppBar(title: const Text('Videos Grabados')),
       body: FutureBuilder<List<File>>(
         future: _videoFiles,
         builder: (context, snapshot) {
@@ -61,10 +65,10 @@ class _VideoListScreenState extends State<VideoListScreen> {
                 },
               );
             } else {
-              return Center(child: Text('No se encontraron videos.'));
+              return const Center(child: Text('No se encontraron videos.'));
             }
           } else {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
         },
       ),
