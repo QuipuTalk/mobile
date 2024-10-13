@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:quiputalk/screens/camera_screen.dart';
+import 'package:quiputalk/screens/camera/camera_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});

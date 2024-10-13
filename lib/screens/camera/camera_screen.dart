@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:quiputalk/screens/video_screen.dart'; 
+import 'package:quiputalk/screens/camera/video_screen.dart'; 
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -55,11 +55,11 @@ class _CameraScreenState extends State<CameraScreen> {
           Column(
             children: [
               Expanded(
-                flex: 7, // Esto hará que ocupe el 70% de la pantalla
+                flex: 8, // Esto hará que ocupe el 70% de la pantalla
                 child: _buildCameraPreview(),
               ),
               Expanded(
-                flex: 3, // Esto hará que ocupe el 30% de la pantalla
+                flex: 2, // Esto hará que ocupe el 30% de la pantalla
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center, // Centrar los elementos en el 30% restante
                   children: [
@@ -88,6 +88,9 @@ class _CameraScreenState extends State<CameraScreen> {
       appBar: AppBar(
         centerTitle: true,
         backgroundColor: Colors.transparent,
+        iconTheme: const IconThemeData(
+          color: Colors.white
+        ),
         elevation: 0,
       ),
       backgroundColor: const Color(0xFF2D4554), // Color de fondo #2D4554
@@ -99,8 +102,7 @@ class _CameraScreenState extends State<CameraScreen> {
     return Container(
   
       child: SizedBox(
-        width: MediaQuery.of(context).size.width, // Ancho completo de la pantalla
-        height: MediaQuery.of(context).size.height * 0.7, // Proporción personalizada
+        width: MediaQuery.of(context).size.width, 
         child: ClipRRect(
           child: CameraPreview(_cameraController),
         ),
