@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:quiputalk/screens/answer/answer_screen.dart';
 import 'package:video_player/video_player.dart';
 
+
 class VideoScreen extends StatefulWidget {
   final String videoPath;
 
@@ -12,6 +13,7 @@ class VideoScreen extends StatefulWidget {
   @override
   _VideoScreenState createState() => _VideoScreenState();
 }
+
 
 class _VideoScreenState extends State<VideoScreen> {
   late VideoPlayerController _controller;
@@ -48,8 +50,11 @@ class _VideoScreenState extends State<VideoScreen> {
         Column(
             children: [
             Expanded(
-              flex: 6,
-              child: _futureBuilder(context),
+                flex: 6,
+                child: RotatedBox(
+                    quarterTurns: 1,
+                    child: _futureBuilder(context)
+                )
             ),
             Expanded(
               flex: 2,
@@ -101,9 +106,9 @@ class _VideoScreenState extends State<VideoScreen> {
             future: _initializeVideoPlayerFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.done) {
-                return Center(
+                return Container(
                   child: AspectRatio(
-                   aspectRatio: _controller.value.aspectRatio, 
+                   aspectRatio: _controller.value.aspectRatio,
                    child: VideoPlayer(_controller),
                   ),
                 );
