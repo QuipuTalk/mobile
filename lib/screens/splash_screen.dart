@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:quiputalk/screens/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
   _SplashScreenState createState() => _SplashScreenState();
 }
@@ -14,7 +16,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   _navigateToHome() async {
-    await Future.delayed(Duration(seconds: 3), () {});
+    await Future.delayed(const Duration(seconds: 3), () {});
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => HomeScreen()),
@@ -29,9 +31,17 @@ class _SplashScreenState extends State<SplashScreen> {
         children: [
           // Fondo de color sólido
           Container(
-            color: Colors.blue, // Usa el color de fondo que prefieras
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                    Color(0xFF49A5DE),
+                    Color(0xFF2D4554), 
+                    ]
+                  )
+            ),
           ),
-          // Imagen de fondo encima del color sólido
           Image.asset(
             "assets/background.png",
             fit: BoxFit.cover,
@@ -42,8 +52,8 @@ class _SplashScreenState extends State<SplashScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset('assets/logo.png'),
-                SizedBox(height: 20),
-                Text(
+                const SizedBox(height: 20),
+                const Text(
                   'Quipu Talk',
                   style: TextStyle(
                     fontSize: 24,
