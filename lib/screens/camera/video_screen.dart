@@ -2,8 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:quiputalk/screens/answer/answer_screen.dart';
+import 'package:quiputalk/screens/camera/camera_screen.dart';
 import 'package:video_player/video_player.dart';
-
+import 'package:video_trimmer/video_trimmer.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:quiputalk/screens/edit/trimmer_view.dart';
 
 class VideoScreen extends StatefulWidget {
   final String videoPath;
@@ -16,6 +19,9 @@ class VideoScreen extends StatefulWidget {
 
 
 class _VideoScreenState extends State<VideoScreen> {
+
+  //videoPath
+
   late VideoPlayerController _controller;
   late Future<void> _initializeVideoPlayerFuture;
 
@@ -122,7 +128,25 @@ class _VideoScreenState extends State<VideoScreen> {
   }
   
   Widget _cuttingSection(){
-    return const Column();
+    return Center(
+      child: ElevatedButton(
+          child: const Text('Load Video'),
+          onPressed: () async {
+            FilePickerResult? result = await FilePicker.platform.pickFiles(
+              type: FileType.video,
+              allowCompression: false,
+            );
+            if(result!=null){
+              File file= File(result.files.single.path!);
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) {
+                  return TrimmerView(file);
+                }),
+              );
+            }
+          },
+      ),
+    );
   }
 
   Widget _buttons(){
@@ -132,33 +156,42 @@ class _VideoScreenState extends State<VideoScreen> {
       child: Row(
          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
          children: [
-            Expanded(
-              child: 
-                ElevatedButton(
-                onPressed: (){}, 
-                style: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.all(const Color(0xfff7a8892)),
-                  foregroundColor: WidgetStateProperty.all(Colors.white), 
-                ),
-                child: const Text("Volver a cargar")              
-              ),
-            ),
+           Expanded(
+             child:
+             ElevatedButton(
+                 onPressed: () {
+                   // Dispose the current controller
+                   _controller.dispose();
+
+                   // Navigate back to the recording screen
+                   Navigator.pushReplacement(
+                     context,
+                     MaterialPageRoute(builder: (context) => CameraScreen()),
+                   );
+                 },
+                 style: ButtonStyle(
+                   backgroundColor: MaterialStateProperty.all(const Color(0xfff7a8892)),
+                   foregroundColor: MaterialStateProperty.all(Colors.white),
+                 ),
+                 child: const Text("Volver a grabar")
+             ),
+           ),
             const SizedBox(width: 10),
             Expanded(
-              child: 
+              child:
                 ElevatedButton(
                 onPressed: (){
                   _showLoadingDialogAndNavigate();
 
-                }, 
+                },
                 style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(const Color(0xFFDB5050)),
-                  foregroundColor: WidgetStateProperty.all(Colors.white), 
+                  foregroundColor: WidgetStateProperty.all(Colors.white),
                 ),
-                child: const Text("Traducir")              
+                child: const Text("Traducir")
               ),
             )
-            
+
          ],
       ),
     );

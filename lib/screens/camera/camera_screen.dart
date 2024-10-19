@@ -20,20 +20,63 @@ enum WidgetState {
   ERROR
 }
 
-class _CameraScreenState extends State<CameraScreen> {
+class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver{
   WidgetState _widgetState = WidgetState.NONE;
   late List<CameraDescription> _cameras;
-  late CameraController _cameraController;
+  CameraController? _cameraController;
   bool _isRecording = false;
-  late int _timer = 0;  // Temporizador en segundos
-  late String _formattedTime = "00:00"; // Tiempo formateado
-  late Timer _timerInstance;
+  int _timer = 0;
+  String _formattedTime = "00:00";
+  Timer? _timerInstance;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     initializeCamera();
   }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _cameraController?.dispose();
+    _stopTimer();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final CameraController? cameraController = _cameraController;
+
+    if (cameraController == null || !cameraController.value.isInitialized) {
+      return;
+    }
+
+    if (state == AppLifecycleState.inactive) {
+      cameraController.dispose();
+    } else if (state == AppLifecycleState.resumed) {
+      initializeCamera();
+    }
+  }
+
+  Future<void> initializeCamera() async {
+    _widgetState = WidgetState.LOADING;
+    if (mounted) setState(() {});
+
+    _cameras = await availableCameras();
+
+    _cameraController = CameraController(_cameras[0], ResolutionPreset.high, enableAudio: true);
+
+    try {
+      await _cameraController!.initialize();
+      _widgetState = WidgetState.LOADED;
+    } catch (e) {
+      _widgetState = WidgetState.ERROR;
+    }
+
+    if (mounted) setState(() {});
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +126,8 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
+
+
   Widget _buildScaffold(BuildContext context, Widget body) {
     return Scaffold(
       appBar: AppBar(
@@ -104,7 +149,7 @@ class _CameraScreenState extends State<CameraScreen> {
       child: SizedBox(
         width: MediaQuery.of(context).size.width, 
         child: ClipRRect(
-          child: CameraPreview(_cameraController),
+          child: CameraPreview(_cameraController!),
         ),
       ),
     );
@@ -143,7 +188,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void _stopTimer() {
-    _timerInstance.cancel();
+    _timerInstance?.cancel();
   }
 
   String _formatTime(int seconds) {
@@ -152,26 +197,8 @@ class _CameraScreenState extends State<CameraScreen> {
     return "${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}";
   }
 
-  initializeCamera() async {
-    _widgetState = WidgetState.LOADING;
-    if (mounted) setState(() {});
-
-    _cameras = await availableCameras();
-
-    _cameraController = CameraController(_cameras[0], ResolutionPreset.high, enableAudio: true);
-
-    try {
-      await _cameraController.initialize();
-      _widgetState = WidgetState.LOADED;
-    } catch (e) {
-      _widgetState = WidgetState.ERROR;
-    }
-
-    if (mounted) setState(() {});
-  }
-
   Future<void> _startRecording() async {
-    if (_cameraController.value.isRecordingVideo) {
+    if (_cameraController!.value.isRecordingVideo) {
       return;
     }
 
@@ -179,7 +206,7 @@ class _CameraScreenState extends State<CameraScreen> {
     final String tempPath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4';
 
     try {
-      await _cameraController.startVideoRecording();
+      await _cameraController?.startVideoRecording();
       _isRecording = true;
       _startTimer(); // Inicia el temporizador cuando empieza la grabación
       setState(() {});
@@ -191,18 +218,18 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _stopRecording() async {
-    if (!_cameraController.value.isRecordingVideo) {
+    if (!_cameraController!.value.isRecordingVideo) {
       return;
     }
 
     try {
-      XFile videoFile = await _cameraController.stopVideoRecording();
+      XFile? videoFile = await _cameraController?.stopVideoRecording();
       _isRecording = false;
       _stopTimer(); // Detiene el temporizador cuando se detiene la grabación
 
       final Directory tempDir = await getTemporaryDirectory();
       final String tempPath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4';
-      final File tempVideo = await File(videoFile.path).copy(tempPath);
+      final File tempVideo = await File(videoFile!.path).copy(tempPath);
       print(tempPath);
 
       Navigator.push(
@@ -216,12 +243,5 @@ class _CameraScreenState extends State<CameraScreen> {
     }
 
     setState(() {});
-  }
-
-  @override
-  void dispose() {
-    _cameraController.dispose();
-    _stopTimer(); // Asegura detener el temporizador al salir
-    super.dispose();
   }
 }
