@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:video_trimmer/video_trimmer.dart';
 
@@ -62,7 +61,7 @@ class _TrimmerViewState extends State<TrimmerView> {
       body: Builder(
         builder: (context) => Center(
           child: Container(
-            padding: EdgeInsets.only(bottom: 30.0),
+            padding: EdgeInsets.only(bottom: 10.0),
             color: Colors.black,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -74,31 +73,16 @@ class _TrimmerViewState extends State<TrimmerView> {
                     backgroundColor: Colors.red,
                   ),
                 ),
-                ElevatedButton(
-                  onPressed: _progressVisibility
-                      ? null
-                      : () async {
-                    String? outputPath = await _saveVideo();
-                    if (outputPath != null) {
-                      print('OUTPUT PATH: $outputPath');
-                      final snackBar = SnackBar(
-                          content: Text('Video Saved successfully'));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        snackBar,
-                      );
-                    } else {
-                      // Handle the case where saving failed
-                      final snackBar = SnackBar(
-                          content: Text('Failed to save video'));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        snackBar,
-                      );
-                    }
-                  },
-                  child: Text("SAVE"),
-                ),
                 Expanded(
-                  child: VideoViewer(trimmer: _trimmer),
+                  child: RotatedBox(
+                    quarterTurns: 1,
+                    child: Center(
+                      child: AspectRatio(
+                        aspectRatio: _trimmer.videoPlayerController!.value.aspectRatio,
+                        child: VideoViewer(trimmer: _trimmer),
+                      ),
+                    ),
+                  ),
                 ),
                 Center(
                   child: TrimViewer(
@@ -133,7 +117,32 @@ class _TrimmerViewState extends State<TrimmerView> {
                       _isPlaying = playbackState;
                     });
                   },
-                )
+                ),
+                SizedBox(height: 10), // Espacio antes del botón
+                ElevatedButton(
+                  onPressed: _progressVisibility
+                      ? null
+                      : () async {
+                    String? outputPath = await _saveVideo();
+                    if (outputPath != null) {
+                      print('OUTPUT PATH: $outputPath');
+                      final snackBar = SnackBar(
+                          content: Text('Video Saved successfully'));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        snackBar,
+                      );
+                    } else {
+                      // Handle the case where saving failed
+                      final snackBar =
+                      SnackBar(content: Text('Failed to save video'));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        snackBar,
+                      );
+                    }
+                  },
+                  child: Text("SAVE"),
+                ),
+                SizedBox(height: 20), // Espacio para separar del borde inferior
               ],
             ),
           ),

@@ -160,11 +160,12 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     try {
       await _cameraController!.startVideoRecording();
       setState(() => _isRecording = true);
-      _startTimer();
+      _startTimer(); // Start the timer when the recording starts
     } catch (e) {
       print('Error starting video recording: $e');
     }
   }
+
 
   Future<void> _stopRecording() async {
     if (!_cameraController!.value.isRecordingVideo) return;
@@ -187,10 +188,14 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     }
   }
 
+
   void _startTimer() {
     _recordingDuration = 0;
     _recordingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() => _recordingDuration++);
+      if (_recordingDuration >= 30) {
+        _stopRecording(); // Automatically stop recording after 30 seconds
+      }
     });
   }
 
