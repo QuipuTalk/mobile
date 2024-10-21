@@ -5,7 +5,7 @@ import 'package:quiputalk/screens/camera/camera_screen.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_trimmer/video_trimmer.dart';
 import 'package:quiputalk/screens/edit/trimmer_view.dart';
-import 'package:permission_handler/permission_handler.dart'; // Import para permisos
+import 'package:permission_handler/permission_handler.dart';
 
 class VideoScreen extends StatefulWidget {
   final String videoPath;
@@ -67,15 +67,24 @@ class _VideoScreenState extends State<VideoScreen> {
             ],
           ),
           Positioned(
-            top: 16,
-            right: 16,
+            top: screenHeight / 3,
+            left: MediaQuery.of(context).size.width / 2 - 28,
             child: FloatingActionButton(
-              heroTag: "cutButton",
-              mini: true,
-              backgroundColor: const Color.fromRGBO(37, 69, 88, 1.0),
-              onPressed: _navigateToTrimmer,
-              child: const Icon(
-                Icons.content_cut,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(40),
+              ),
+              backgroundColor: const Color(0xFF2D4554),
+              onPressed: () {
+                setState(() {
+                  if (_controller.value.isPlaying) {
+                    _controller.pause();
+                  } else {
+                    _controller.play();
+                  }
+                });
+              },
+              child: Icon(
+                _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
                 color: Colors.white,
               ),
             ),
@@ -87,26 +96,7 @@ class _VideoScreenState extends State<VideoScreen> {
               heroTag: "cutButton",
               mini: true,
               backgroundColor: const Color.fromRGBO(37, 69, 88, 1.0),
-              onPressed: () async {
-                // Solicitar permisos de almacenamiento antes de proceder
-                var status = await Permission.storage.request();
-                if (status.isGranted) {
-                  // Navegar a la pantalla de recorte de video usando el video grabado actualmente
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) {
-                        return TrimmerView(File(widget.videoPath));
-                      },
-                    ),
-                  );
-                } else {
-                  // Mostrar mensaje si el permiso no es otorgado
-                  final snackBar = SnackBar(
-                    content: Text('Permiso de almacenamiento requerido para recortar el video.'),
-                  );
-                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                }
-              },
+              onPressed: _navigateToTrimmer,
               child: const Icon(
                 Icons.content_cut,
                 color: Colors.white,
@@ -148,10 +138,7 @@ class _VideoScreenState extends State<VideoScreen> {
           Expanded(
             child: ElevatedButton(
               onPressed: () {
-                // Dispose the current controller
                 _controller.dispose();
-
-                // Navigate back to the recording screen
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const CameraScreen()),
@@ -224,7 +211,7 @@ class _VideoScreenState extends State<VideoScreen> {
   }
 
   void _navigateToTrimmer() async {
-    var status = await Permission.storage.request();
+    var status = await Permission.videos.request();
     if (status.isGranted) {
       final result = await Navigator.of(context).push<String>(
         MaterialPageRoute(
@@ -241,12 +228,10 @@ class _VideoScreenState extends State<VideoScreen> {
       }
     } else {
       final snackBar = SnackBar(
-        content: Text('Permiso de almacenamiento requerido para recortar el video.'),
+        content: Text('Permiso de acceso a videos requerido para recortar el video.'),
       );
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
-
-
 
 }
