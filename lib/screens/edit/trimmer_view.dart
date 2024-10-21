@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:video_trimmer/video_trimmer.dart';
+import 'package:path_provider/path_provider.dart';
+
 
 class TrimmerView extends StatefulWidget {
   final File file;
@@ -21,25 +23,65 @@ class _TrimmerViewState extends State<TrimmerView> {
   bool _isPlaying = false;
   bool _progressVisibility = false;
 
-  Future<String?> _saveVideo() async {
+  Future<void> _saveVideo() async {
     setState(() {
       _progressVisibility = true;
     });
 
-    String? outputPath;
+    try {
+      // Cambiar la ruta de salida a un directorio externo confiable
+      final Directory? externalDir = await getExternalStorageDirectory();
+      if (externalDir == null) {
+        throw Exception("No se pudo acceder al directorio externo");
+      }
+      final String outputPath = '${externalDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4';
 
-    await _trimmer.saveTrimmedVideo(
-      startValue: _startValue,
-      endValue: _endValue,
-      onSave: (outputPath) {
-        setState(() {
-          _progressVisibility = false;
-        });
-      },
-    );
+      print('Output path: $outputPath');
 
-    return outputPath;
+      await _trimmer.saveTrimmedVideo(
+        startValue: _startValue,
+        endValue: _endValue,
+        outputFormat: FileFormat.mp4,
+        onSave: (savedVideoPath) async {
+          setState(() {
+            _progressVisibility = false;
+          });
+
+          if (savedVideoPath != null) {
+            try {
+              final File trimmedVideo = File(savedVideoPath);
+              print('Trimmed video path: ${trimmedVideo.path}');
+              print('Original video path: ${widget.file.path}');
+
+              await trimmedVideo.copy(widget.file.path);
+
+              final snackBar = SnackBar(content: Text('Video guardado exitosamente.'));
+              ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+              Navigator.of(context).pop(widget.file.path);
+            } catch (e) {
+              print('Error copying trimmed video: $e');
+              final snackBar = SnackBar(content: Text('Error al guardar el video: $e'));
+              ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            }
+          } else {
+            print('Saved video path is null');
+            final snackBar = SnackBar(content: Text('No se pudo guardar el video.'));
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+          }
+        },
+      );
+    } catch (e) {
+      print('Error during video trimming: $e');
+      setState(() {
+        _progressVisibility = false;
+      });
+
+      final snackBar = SnackBar(content: Text('Error al recortar el video: $e'));
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    }
   }
+
 
   void _loadVideo() {
     _trimmer.loadVideo(videoFile: widget.file);
@@ -123,22 +165,7 @@ class _TrimmerViewState extends State<TrimmerView> {
                   onPressed: _progressVisibility
                       ? null
                       : () async {
-                    String? outputPath = await _saveVideo();
-                    if (outputPath != null) {
-                      print('OUTPUT PATH: $outputPath');
-                      final snackBar = SnackBar(
-                          content: Text('Video Saved successfully'));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        snackBar,
-                      );
-                    } else {
-                      // Handle the case where saving failed
-                      final snackBar =
-                      SnackBar(content: Text('Failed to save video'));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        snackBar,
-                      );
-                    }
+                    await _saveVideo();
                   },
                   child: Text("SAVE"),
                 ),
