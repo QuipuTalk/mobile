@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 class AnswerScreen extends StatefulWidget {
   const AnswerScreen({super.key});
@@ -8,6 +9,8 @@ class AnswerScreen extends StatefulWidget {
 }
 
 class _AnswerScreenState extends State<AnswerScreen> {
+  final FlutterTts flutterTts = FlutterTts();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -61,7 +64,11 @@ class _AnswerScreenState extends State<AnswerScreen> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.volume_up),
-                    onPressed: () {},
+                    onPressed: () async {
+                      await flutterTts.setLanguage('es-ES');
+                      await flutterTts.setSpeechRate(0.5);
+                      await flutterTts.speak('¿Lograste encontrar la lección que te di la última vez? Porque si no, puedo explicártela nuevamente con más detalles.');
+                    },
                   ),
                 ],
               ),
