@@ -10,6 +10,17 @@ class AnswerScreen extends StatefulWidget {
 
 class _AnswerScreenState extends State<AnswerScreen> {
   final FlutterTts flutterTts = FlutterTts();
+  bool isPlaying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    flutterTts.setCompletionHandler(() {
+      setState(() {
+        isPlaying = false;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,11 +74,21 @@ class _AnswerScreenState extends State<AnswerScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.volume_up),
+                    icon: Icon(isPlaying ? Icons.pause : Icons.volume_up),
                     onPressed: () async {
-                      await flutterTts.setLanguage('es-ES');
-                      await flutterTts.setSpeechRate(0.5);
-                      await flutterTts.speak('¿Lograste encontrar la lección que te di la última vez? Porque si no, puedo explicártela nuevamente con más detalles.');
+                      if (isPlaying) {
+                        await flutterTts.pause();
+                        setState(() {
+                          isPlaying = false;
+                        });
+                      } else {
+                        await flutterTts.setLanguage('es-ES');
+                        await flutterTts.setSpeechRate(0.5);
+                        await flutterTts.speak('¿Lograste encontrar la lección que te di la última vez? Porque si no, puedo explicártela nuevamente con más detalles.');
+                        setState(() {
+                          isPlaying = true;
+                        });
+                      }
                     },
                   ),
                 ],
