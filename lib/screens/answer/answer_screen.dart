@@ -11,6 +11,8 @@ class AnswerScreen extends StatefulWidget {
 class _AnswerScreenState extends State<AnswerScreen> {
   final FlutterTts flutterTts = FlutterTts();
   bool isPlaying = false;
+  bool isCustomizingResponse = false;
+  final TextEditingController _responseController = TextEditingController();
 
   @override
   void initState() {
@@ -95,67 +97,118 @@ class _AnswerScreenState extends State<AnswerScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            Row(
-              children: [
-                const Text(
-                  'Elige una respuesta',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Icon(
-                  Icons.sync,
-                  color: Colors.grey[700],
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: const Color(0xFFB0BEC5),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
+            if (!isCustomizingResponse) ...[
+              Row(
                 children: [
-                  _buildOption('Sí, encontré la lección, pero me costó entender algunos puntos. ¿Podrías aclararlos?'),
-                  const SizedBox(height: 10),
-                  _buildOption('No, no pude encontrarla. ¿Podrías explicármela de nuevo, por favor?'),
-                  const SizedBox(height: 10),
-                  _buildOption('Sí, la encontré y la revisé, pero me gustaría que me expliques algunos detalles adicionales.'),
+                  const Text(
+                    'Elige una respuesta',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Icon(
+                    Icons.sync,
+                    color: Colors.grey[700],
+                  ),
                 ],
               ),
-            ),
-            const Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFDB5050),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Volver a grabar', style: TextStyle(color: Colors.white)),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFB0BEC5),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF607D8B),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Personalizar respuesta', style: TextStyle(color: Colors.white)),
+                child: Column(
+                  children: [
+                    _buildOption('Sí, encontré la lección, pero me costó entender algunos puntos. ¿Podrías aclararlos?'),
+                    const SizedBox(height: 10),
+                    _buildOption('No, no pude encontrarla. ¿Podrías explicármela de nuevo, por favor?'),
+                    const SizedBox(height: 10),
+                    _buildOption('Sí, la encontré y la revisé, pero me gustaría que me expliques algunos detalles adicionales.'),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const Spacer(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {},
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFDB5050),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Volver a grabar', style: TextStyle(color: Colors.white)),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        isCustomizingResponse = true;
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF607D8B),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Personalizar respuesta', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ] else ...[
+              Expanded(
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _responseController,
+                          decoration: InputDecoration(
+                            hintText: 'Escribe tu respuesta aquí...',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                          onChanged: (text) {
+                            setState(() {});
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      if (_responseController.text.isEmpty)
+                        IconButton(
+                          icon: const Icon(Icons.mic, color: Color(0xFF607D8B)),
+                          onPressed: () {
+                            // Funcionalidad de dictado por voz
+                          },
+                        )
+                      else
+                        IconButton(
+                          icon: const Icon(Icons.send, color: Color(0xFF607D8B)),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ResponseDisplayScreen(response: _responseController.text),
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -180,6 +233,65 @@ class _AnswerScreenState extends State<AnswerScreen> {
       child: Text(
         text,
         style: const TextStyle(fontSize: 16),
+      ),
+    );
+  }
+}
+
+class ResponseDisplayScreen extends StatelessWidget {
+  final String response;
+
+  const ResponseDisplayScreen({Key? key, required this.response}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF2D4554),
+        title: const Text('Respuesta Personalizada'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              response,
+              style: const TextStyle(fontSize: 18),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 40),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDB5050),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Volver a grabar', style: TextStyle(color: Colors.white)),
+                ),
+                ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF607D8B),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Terminar conversación', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
