@@ -261,10 +261,20 @@ class _AnswerScreenState extends State<AnswerScreen> {
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
-              children: const [
-                CircularProgressIndicator(),
-                SizedBox(height: 20),
-                Text("Escuchando...", style: TextStyle(fontSize: 16)),
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 20),
+                const Text("Escuchando...", style: TextStyle(fontSize: 16)),
+                const SizedBox(height: 10),
+                ValueListenableBuilder(
+                  valueListenable: _responseController,
+                  builder: (context, value, child) {
+                    return Text(
+                      _responseController.text,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    );
+                  },
+                ),
               ],
             ),
           ),
