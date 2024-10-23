@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class AnswerScreen extends StatefulWidget {
   const AnswerScreen({super.key});
@@ -10,8 +11,10 @@ class AnswerScreen extends StatefulWidget {
 
 class _AnswerScreenState extends State<AnswerScreen> {
   final FlutterTts flutterTts = FlutterTts();
+  final stt.SpeechToText _speech = stt.SpeechToText();
   bool isPlaying = false;
   bool isCustomizingResponse = false;
+  bool isListening = false;
   final TextEditingController _responseController = TextEditingController();
 
   @override
@@ -187,10 +190,8 @@ class _AnswerScreenState extends State<AnswerScreen> {
                       const SizedBox(width: 10),
                       if (_responseController.text.isEmpty)
                         IconButton(
-                          icon: const Icon(Icons.mic, color: Color(0xFF607D8B)),
-                          onPressed: () {
-                            // Funcionalidad de dictado por voz
-                          },
+                          icon: Icon(isListening ? Icons.mic_off : Icons.mic, color: const Color(0xFF607D8B)),
+                          onPressed: _listen,
                         )
                       else
                         IconButton(
@@ -235,6 +236,53 @@ class _AnswerScreenState extends State<AnswerScreen> {
         style: const TextStyle(fontSize: 16),
       ),
     );
+  }
+
+  void _listen() async {
+    if (!isListening) {
+      bool available = await _speech.initialize(
+        onStatus: (val) => setState(() {
+          if (val == "done") {
+            isListening = false;
+          }
+        }),
+        onError: (val) => setState(() {
+          isListening = false;
+        }),
+      );
+      if (available) {
+        setState(() => isListening = true);
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                CircularProgressIndicator(),
+                SizedBox(height: 20),
+                Text("Escuchando...", style: TextStyle(fontSize: 16)),
+              ],
+            ),
+          ),
+        );
+        _speech.listen(
+          localeId: 'es_ES',
+          onResult: (val) => setState(() {
+            _responseController.text = val.recognizedWords;
+            if (val.hasConfidenceRating && val.confidence > 0) {
+              Navigator.of(context).pop();
+            }
+          }),
+        );
+      }
+    } else {
+      setState(() => isListening = false);
+      _speech.stop();
+    }
   }
 }
 
