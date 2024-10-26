@@ -176,12 +176,16 @@ class _AnswerScreenState extends State<AnswerScreen> {
                         child: TextField(
                           controller: _responseController,
                           decoration: InputDecoration(
-                            hintText: 'Escribe tu respuesta aquí...',
+                            hintText: 'Mensaje',
+                            hintStyle: const TextStyle(color: Color(0xFFD9D9D9)),
+                            filled: true,
+                            fillColor: const Color(0xD92D4554),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           ),
+                          style: const TextStyle(color: Colors.white),
                           onChanged: (text) {
                             setState(() {});
                           },
