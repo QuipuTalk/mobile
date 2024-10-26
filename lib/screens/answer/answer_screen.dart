@@ -78,23 +78,30 @@ class _AnswerScreenState extends State<AnswerScreen> {
                       style: TextStyle(fontSize: 16),
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(isPlaying ? Icons.pause : Icons.volume_up),
-                    onPressed: () async {
-                      if (isPlaying) {
-                        await flutterTts.pause();
-                        setState(() {
-                          isPlaying = false;
-                        });
-                      } else {
-                        await flutterTts.setLanguage('es-ES');
-                        await flutterTts.setSpeechRate(0.5);
-                        await flutterTts.speak('¿Lograste encontrar la lección que te di la última vez? Porque si no, puedo explicártela nuevamente con más detalles.');
-                        setState(() {
-                          isPlaying = true;
-                        });
-                      }
-                    },
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0x7A8892),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: Icon(isPlaying ? Icons.pause : Icons.volume_up, color: const Color(
+                          0xFF1B455E)),
+                      onPressed: () async {
+                        if (isPlaying) {
+                          await flutterTts.pause();
+                          setState(() {
+                            isPlaying = false;
+                          });
+                        } else {
+                          await flutterTts.setLanguage('es-ES');
+                          await flutterTts.setSpeechRate(0.5);
+                          await flutterTts.speak('¿Lograste encontrar la lección que te di la última vez? Porque si no, puedo explicártela nuevamente con más detalles.');
+                          setState(() {
+                            isPlaying = true;
+                          });
+                        }
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -193,21 +200,33 @@ class _AnswerScreenState extends State<AnswerScreen> {
                       ),
                       const SizedBox(width: 10),
                       if (_responseController.text.isEmpty)
-                        IconButton(
-                          icon: Icon(isListening ? Icons.mic_off : Icons.mic, color: const Color(0xFF607D8B)),
-                          onPressed: _listen,
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF7A8892),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: Icon(isListening ? Icons.mic_off : Icons.mic, color: const Color(0xFFFFFFFF)),
+                            onPressed: _listen,
+                          ),
                         )
                       else
-                        IconButton(
-                          icon: const Icon(Icons.send, color: Color(0xFF607D8B)),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ResponseDisplayScreen(response: _responseController.text),
-                              ),
-                            );
-                          },
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF7A8892),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.send, color: Color(0xFFFFFFFF)),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ResponseDisplayScreen(response: _responseController.text),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                     ],
                   ),
