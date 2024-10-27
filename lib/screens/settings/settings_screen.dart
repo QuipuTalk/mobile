@@ -13,7 +13,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final FlutterTts flutterTts = FlutterTts();
   String? selectedVoiceName;
   bool isPlaying = false;
-  List<dynamic> spanishVoices = [];
+  List<Map<String, dynamic>> predefinedVoices = [
+    {
+      'name': 'es-es-x-eef-local',
+      'locale': 'es-ES',
+      'label': 'Masculina',
+      'gender': 'male'
+    },
+    {
+      'name': 'es-us-x-sfb-network',
+      'locale': 'es-US',
+      'label': 'Femenina',
+      'gender': 'female'
+    },
+  ];
   bool isLoading = true;
 
   @override
@@ -24,35 +37,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _initTts() async {
-    await _getSpanishVoices();
     await _loadVoicePreference();
     setState(() {
       isLoading = false;
     });
-  }
-
-  Future<void> _getSpanishVoices() async {
-    try {
-      var voices = await flutterTts.getVoices;
-
-      setState(() {
-        spanishVoices = voices.where((voice) {
-          return (voice['locale'] as String).startsWith('es-');
-        }).toList();
-
-        // Solo establecer una voz por defecto si no hay ninguna seleccionada
-        if (spanishVoices.isNotEmpty && selectedVoiceName == null) {
-          selectedVoiceName = spanishVoices.first['name'];
-        }
-      });
-
-      print('Voces encontradas: ${spanishVoices.length}');
-      for (var voice in spanishVoices) {
-        print('Nombre: ${voice['name']}, Locale: ${voice['locale']}');
-      }
-    } catch (e) {
-      print('Error al obtener las voces: $e');
-    }
   }
 
   Future<void> _loadVoicePreference() async {
@@ -60,12 +48,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     String? savedVoice = prefs.getString('voice_name');
 
     if (savedVoice != null) {
-      bool voiceExists = spanishVoices.any((voice) => voice['name'] == savedVoice);
+      bool voiceExists = predefinedVoices.any((voice) => voice['name'] == savedVoice);
       if (voiceExists) {
         setState(() {
           selectedVoiceName = savedVoice;
         });
       }
+    } else {
+      // Si no hay voz guardada, usar la masculina por defecto
+      setState(() {
+        selectedVoiceName = predefinedVoices[0]['name'];
+      });
     }
   }
 
@@ -85,30 +78,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (selectedVoiceName != null) {
       try {
-        // Encontrar la voz seleccionada y su locale
-        var selectedVoice = spanishVoices.firstWhere(
+        var selectedVoice = predefinedVoices.firstWhere(
               (voice) => voice['name'] == selectedVoiceName,
-          orElse: () => null,
         );
 
-        if (selectedVoice != null) {
-          // Configurar el idioma específico de la voz
-          await flutterTts.setLanguage(selectedVoice['locale']);
+        await flutterTts.setLanguage(selectedVoice['locale']);
+        await flutterTts.setVoice({
+          'name': selectedVoice['name'],
+          'locale': selectedVoice['locale'],
+        });
 
-          // Configurar la voz específica
-          await flutterTts.setVoice({
-            'name': selectedVoiceName!,
-            'locale': selectedVoice['locale'],
-          });
+        await flutterTts.setSpeechRate(0.5);
+        await flutterTts.setPitch(1.0);
+        await flutterTts.setVolume(1.0);
 
-          // Configurar otros parámetros
-          await flutterTts.setSpeechRate(0.5);
-          await flutterTts.setPitch(1.0);
-          await flutterTts.setVolume(1.0);
-
-          setState(() => isPlaying = true);
-          await flutterTts.speak('Este es un ejemplo de la voz $selectedVoiceName');
-        }
+        setState(() => isPlaying = true);
+        String voiceType = selectedVoice['label'];
+        await flutterTts.speak('Este es un ejemplo de la voz $voiceType');
       } catch (e) {
         print("Error al configurar o reproducir la voz: $e");
       }
@@ -119,7 +105,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ajustes'),
+        title: const Text('Ajustes de Voz'),
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -127,31 +113,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (spanishVoices.isEmpty)
-              const Text('No se encontraron voces en español'),
-            if (spanishVoices.isNotEmpty) ...[
-              DropdownButton<String>(
-                value: selectedVoiceName,
-                items: spanishVoices.map((voice) {
-                  return DropdownMenuItem<String>(
-                    value: voice['name'] as String,
-                    child: Text('${voice['name']} (${voice['locale']})'),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    selectedVoiceName = newValue;
-                    _saveVoicePreference();
-                    _playTestVoice();
-                  });
-                },
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _playTestVoice,
-                child: Text(isPlaying ? 'Detener' : 'Probar Voz'),
-              ),
-            ],
+            const Text(
+              'Selecciona el tipo de voz',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            DropdownButton<String>(
+              value: selectedVoiceName,
+              items: predefinedVoices.map((voice) {
+                return DropdownMenuItem<String>(
+                  value: voice['name'] as String,
+                  child: Text(voice['label'] as String),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  selectedVoiceName = newValue;
+                  _saveVoicePreference();
+                  _playTestVoice();
+                });
+              },
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _playTestVoice,
+              icon: Icon(isPlaying ? Icons.stop : Icons.play_arrow),
+              label: Text(isPlaying ? 'Detener' : 'Probar Voz'),
+            ),
           ],
         ),
       ),
