@@ -74,6 +74,19 @@ flutter:
     - assets/welcome_image.png
     - assets/welcome_image_2.png
 
+  fonts:
+    - family: LexendDeca
+      fonts:
+        - asset: assets/fonts/LexendDeca-Black.ttf
+        - asset: assets/fonts/LexendDeca-Bold.ttf
+        - asset: assets/fonts/LexendDeca-ExtraBold.ttf
+        - asset: assets/fonts/LexendDeca-ExtraLight.ttf
+        - asset: assets/fonts/LexendDeca-Light.ttf
+        - asset: assets/fonts/LexendDeca-Medium.ttf
+        - asset: assets/fonts/LexendDeca-Regular.ttf
+        - asset: assets/fonts/LexendDeca-SemiBold.ttf
+        - asset: assets/fonts/LexendDeca-Thin.ttf
+
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

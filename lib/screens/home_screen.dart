@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:quiputalk/screens/camera/camera_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
+import 'package:quiputalk/utils/hexadecimal_color.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -68,6 +70,28 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showExitDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Salir'),
+          content: const Text('¿Deseas salir de la aplicación?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => SystemNavigator.pop(),
+              child: const Text('Salir'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _navigateToCameraScreen() {
     Navigator.push(
       context,
@@ -87,22 +111,40 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Quipu Talk'),
         backgroundColor: const Color(0xFF2D4554),
       ),*/
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: RoundedCard(
-                height: MediaQuery.of(context).size.height * 0.85,
-                radius: 40,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 20.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      if(_isFirstTime) ...[
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomLeft,
+            colors: [
+              Color(0xFF49A5DE),
+              Color(0xFF2D4554),
+            ],
+            stops: [0.0,1.0]
+          )
+        ),
+        child: SafeArea(
+          child: Stack(
+            children: [
+              Positioned(
+                left: 16,
+                top: 16,
+                child: IconButton(
+                    onPressed: _showExitDialog,
+                    icon: const Icon(Icons.arrow_back,color: Colors.white)
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: RoundedCard(
+                  height: MediaQuery.of(context).size.height * 0.85,
+                  radius: 40,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 20.0),
+                    child: Column(
+                      children: <Widget>[
                         const Text(
                           'Quipu Talk',
                           style: TextStyle(
@@ -111,52 +153,88 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: Color(0xFF2D4554),
                           ),
                         ),
-                        Image.asset(
-                          'assets/welcome_image.png',
-                          height: 150,
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          'Tutorial de Bienvenida',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF2D4554),
+                        const SizedBox( height: 15),
+                        if(_isFirstTime) ...[
+                          Image.asset(
+                            'assets/welcome_image.png',
+                            height: 200,
                           ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Tutorial de Bienvenida',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF2D4554),
+                            ),
+                          ),
+                        ] else ...[
+                          const SizedBox(height: 30),
+                          Image.asset(
+                            'assets/welcome_image_2.png', // Asegúrate de tener la imagen en el directorio correcto
+                            height: 200,
+                          ),
+                        ],
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: 200,
+                          child: _buildButton(
+                              'Traducción de LSP',
+                              Icons.handshake_outlined,
+                              _navigateToCameraScreen,
+                              HexColor.fromHex("#FF5034")),
                         ),
-                      ] else ...[
-                        const SizedBox(height: 50),
-                        Image.asset(
-                          'assets/welcome_image_2.png', // Asegúrate de tener la imagen en el directorio correcto
-                          height: 150,
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: 200,
+                          child: _buildButton(
+                              'Ajustes',
+                              Icons.settings, () {},
+                              HexColor.fromHex("#768893")),
                         ),
+
                       ],
-                      const Spacer(),
-                      _buildButton('Traducción de LSP', Icons.handshake_outlined, _navigateToCameraScreen, Colors.red),
-                      const SizedBox(height: 10),
-                      _buildButton('Ajustes', Icons.settings, () {}, const Color(0xFF607D8B)),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ]
+            ]
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildButton(String text, IconData icon, VoidCallback onPressed, Color color) {
-    return ElevatedButton.icon(
+
+  Widget _buildButton(
+      String text, IconData icon, VoidCallback onPressed, Color color) {
+    return ElevatedButton(
       onPressed: _isConnected ? onPressed : null,
-      icon: Icon(icon, color: Colors.white),
-      label: Text(text, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 20),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min, // Añadido para evitar que el Row tome todo el espacio
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Flexible( // Añadido Flexible para permitir que el texto se ajuste si es necesario
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Icon(icon, color: Colors.white),
+        ],
       ),
     );
   }

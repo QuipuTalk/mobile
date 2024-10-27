@@ -14,6 +14,7 @@ class MyApp extends StatelessWidget {
       title: 'Quipu Talk',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        fontFamily: 'LexendDeca',
         useMaterial3: true,
       ),
       home: SplashScreen(),
