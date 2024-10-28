@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AnswerScreen extends StatefulWidget {
   const AnswerScreen({super.key});
@@ -15,16 +16,65 @@ class _AnswerScreenState extends State<AnswerScreen> {
   bool isPlaying = false;
   bool isCustomizingResponse = false;
   bool isListening = false;
+  String? selectedVoiceName;
   final TextEditingController _responseController = TextEditingController();
+
+  // Definimos las voces predefinidas
+  final Map<String, Map<String, String>> predefinedVoices = {
+    'es-es-x-eef-local': {'locale': 'es-ES', 'label': 'Masculina'},
+    'es-us-x-sfb-network': {'locale': 'es-US', 'label': 'Femenina'},
+  };
 
   @override
   void initState() {
     super.initState();
+    _loadVoicePreference();
     flutterTts.setCompletionHandler(() {
       setState(() {
         isPlaying = false;
       });
     });
+  }
+
+  Future<void> _loadVoicePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      // Si no hay preferencia guardada, usa la voz masculina por defecto
+      selectedVoiceName = prefs.getString('voice_name') ?? 'es-es-x-eef-local';
+    });
+  }
+
+  Future<void> _playText(String text) async {
+    if (isPlaying) {
+      await flutterTts.stop();
+      setState(() {
+        isPlaying = false;
+      });
+      return;
+    }
+
+    try {
+      // Configurar la voz según la preferencia guardada
+      String locale = predefinedVoices[selectedVoiceName]?['locale'] ?? 'es-ES';
+
+      await flutterTts.setLanguage(locale);
+      await flutterTts.setVoice({
+        'name': selectedVoiceName!,
+        'locale': locale,
+      });
+
+      await flutterTts.setSpeechRate(0.5);
+      await flutterTts.setPitch(1.0);
+      await flutterTts.setVolume(1.0);
+
+      setState(() {
+        isPlaying = true;
+      });
+
+      await flutterTts.speak(text);
+    } catch (e) {
+      print("Error al reproducir el texto: $e");
+    }
   }
 
   @override
@@ -38,7 +88,11 @@ class _AnswerScreenState extends State<AnswerScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () {},
+            onPressed: () async {
+              // Navegar a la pantalla de ajustes y recargar la preferencia al volver
+              await Navigator.pushNamed(context, '/settings');
+              _loadVoicePreference();
+            },
           ),
         ],
       ),
@@ -86,21 +140,10 @@ class _AnswerScreenState extends State<AnswerScreen> {
                     child: IconButton(
                       icon: Icon(isPlaying ? Icons.pause : Icons.volume_up, color: const Color(
                           0xFF1B455E)),
-                      onPressed: () async {
-                        if (isPlaying) {
-                          await flutterTts.pause();
-                          setState(() {
-                            isPlaying = false;
-                          });
-                        } else {
-                          await flutterTts.setLanguage('es-ES');
-                          await flutterTts.setSpeechRate(0.5);
-                          await flutterTts.speak('¿Lograste encontrar la lección que te di la última vez? Porque si no, puedo explicártela nuevamente con más detalles.');
-                          setState(() {
-                            isPlaying = true;
-                          });
-                        }
-                      },
+                      onPressed: () => _playText(
+                        '¿Lograste encontrar la lección que te di la última vez? Porque si no, puedo explicártela nuevamente con más detalles.',
+                      ),
+
                     ),
                   ),
                 ],
