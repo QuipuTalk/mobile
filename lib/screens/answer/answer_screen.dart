@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:quiputalk/screens/settings/settings_screen.dart';
 
 class AnswerScreen extends StatefulWidget {
   const AnswerScreen({super.key});
@@ -9,6 +10,8 @@ class AnswerScreen extends StatefulWidget {
   @override
   State<AnswerScreen> createState() => _AnswerScreenState();
 }
+
+
 
 class _AnswerScreenState extends State<AnswerScreen> {
   final FlutterTts flutterTts = FlutterTts();
@@ -29,11 +32,29 @@ class _AnswerScreenState extends State<AnswerScreen> {
   void initState() {
     super.initState();
     _loadVoicePreference();
-    flutterTts.setCompletionHandler(() {
-      setState(() {
-        isPlaying = false;
-      });
-    });
+    flutterTts.setCompletionHandler(() => onTtsComplete());
+  }
+
+  void _navigateToSettings() async {
+    flutterTts.stop();
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+    );
+    await _loadVoicePreference(); // Recargar la preferencia después de regresar
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadVoicePreference(); // Recargar preferencias si las dependencias cambian
+  }
+
+  @override
+  void dispose() {
+    flutterTts.stop(); // Detener el TTS cuando la pantalla se destruya
+    super.dispose();
   }
 
   Future<void> _loadVoicePreference() async {
@@ -41,6 +62,12 @@ class _AnswerScreenState extends State<AnswerScreen> {
     setState(() {
       // Si no hay preferencia guardada, usa la voz masculina por defecto
       selectedVoiceName = prefs.getString('voice_name') ?? 'es-es-x-eef-local';
+    });
+  }
+
+  void onTtsComplete() {
+    setState(() {
+      isPlaying = false;
     });
   }
 
@@ -90,8 +117,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
             icon: const Icon(Icons.settings),
             onPressed: () async {
               // Navegar a la pantalla de ajustes y recargar la preferencia al volver
-              await Navigator.pushNamed(context, '/settings');
-              _loadVoicePreference();
+              _navigateToSettings();
             },
           ),
         ],
