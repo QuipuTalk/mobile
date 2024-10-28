@@ -97,6 +97,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
+    // Calculamos dimensiones responsivas basadas en el tamaño de la pantalla
+
     return Scaffold(
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -144,62 +146,70 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                height: size.height * 0.85, // Increased from 0.7 to 0.85
+                height: size.height * 0.85,
                 child: RoundedCard(
-                  height: size.height * 0.85,
+                  height: size.height * 0.75,
                   radius: size.width * 0.1,
-                  child: Column(
-                    children: [
-                      // Added spacer at the top
-                      SizedBox(height: size.height * 0.05),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: size.width * 0.08,
-                            vertical: size.height * 0.02,
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text(
-                                'Selecciona el tipo de voz',
-                                style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              DropdownButton<String>(
-                                value: selectedVoiceName,
-                                items: predefinedVoices.map((voice) {
-                                  return DropdownMenuItem<String>(
-                                    value: voice['name'],
-                                    child: Text(voice['label']),
-                                  );
-                                }).toList(),
-                                onChanged: (String? newValue) {
-                                  setState(() {
-                                    selectedVoiceName = newValue;
-                                    _saveVoicePreference();
-                                    _playTestVoice();
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 20),
-                              ElevatedButton.icon(
-                                onPressed: _playTestVoice,
-                                icon: Icon(
-                                    isPlaying ? Icons.stop : Icons.play_arrow
-                                ),
-                                label: Text(
-                                    isPlaying ? 'Detener' : 'Probar Voz'
-                                ),
-                              ),
-                            ],
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: size.width * 0.08,
+                      vertical: size.height * 0.04,
+                    ),
+                    child: Column(
+/*                      mainAxisAlignment: MainAxisAlignment.center,*/
+                      children: [
+                        const Text(
+                          'Selecciona el tipo de voz',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 20),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: size.width * 0.04,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(size.width * 0.04),
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 1,
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: selectedVoiceName,
+                              isExpanded: true,
+                              icon: const Icon(Icons.arrow_drop_down),
+                              items: predefinedVoices.map((voice) {
+                                return DropdownMenuItem<String>(
+                                  value: voice['name'],
+                                  child: Text(voice['label']),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  selectedVoiceName = newValue;
+                                  _saveVoicePreference();
+                                  _playTestVoice();
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton.icon(
+                          onPressed: _playTestVoice,
+                          icon: Icon(
+                            isPlaying ? Icons.stop : Icons.play_arrow,
+                          ),
+                          label: Text(
+                            isPlaying ? 'Detener' : 'Probar Voz',
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
