@@ -3,6 +3,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quiputalk/screens/settings/settings_screen.dart';
+import 'package:quiputalk/utils/hexadecimal_color.dart';
 
 class AnswerScreen extends StatefulWidget {
   const AnswerScreen({super.key});
@@ -225,11 +226,13 @@ class _AnswerScreenState extends State<AnswerScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       const Text(
                         'Elige una respuesta',
                         style: TextStyle(
                           fontSize: 18,
+                          color: Colors.blueGrey,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -244,16 +247,43 @@ class _AnswerScreenState extends State<AnswerScreen> {
                   Container(
                     padding: const EdgeInsets.all(16.0),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFB0BEC5),
+                      color: HexColor.fromHex('#7B9DB0 '),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const Text(
+                            'Opciones',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white
+                          ),
+                        ),
+                        const SizedBox(height: 10),
                         _buildOption('Sí, encontré la lección, pero me costó entender algunos puntos. ¿Podrías aclararlos?'),
                         const SizedBox(height: 10),
                         _buildOption('No, no pude encontrarla. ¿Podrías explicármela de nuevo, por favor?'),
                         const SizedBox(height: 10),
                         _buildOption('Sí, la encontré y la revisé, pero me gustaría que me expliques algunos detalles adicionales.'),
+                        const SizedBox(height: 20),
+                        Center(
+                          child: GestureDetector(
+                            onTap: () {
+                              // Acción para "Volver a generar"
+                            },
+                            child: const Text(
+                              'Volver a generar',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -312,7 +342,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
       child: Container(
         padding: const EdgeInsets.all(16.0),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: HexColor.fromHex('#617D8C'),
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
@@ -325,7 +355,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
         ),
         child: Text(
           text,
-          style: const TextStyle(fontSize: 16),
+          style: const TextStyle(fontSize: 16, color: Colors.white),
         ),
       ),
     );
