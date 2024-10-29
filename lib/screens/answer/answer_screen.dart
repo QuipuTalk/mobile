@@ -221,7 +221,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
             ),
           if (!isCustomizingResponse)
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(12.0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -231,43 +231,42 @@ class _AnswerScreenState extends State<AnswerScreen> {
                       const Text(
                         'Elige una respuesta',
                         style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.blueGrey,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Icon(
                         Icons.sync,
                         color: Colors.grey[700],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(12.0),
                     decoration: BoxDecoration(
-                      color: HexColor.fromHex('#7B9DB0 '),
+                      color: HexColor.fromHex('#7B9DB0'),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                            'Opciones',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white
+                          'Opciones',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         _buildOption('Sí, encontré la lección, pero me costó entender algunos puntos. ¿Podrías aclararlos?'),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         _buildOption('No, no pude encontrarla. ¿Podrías explicármela de nuevo, por favor?'),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         _buildOption('Sí, la encontré y la revisé, pero me gustaría que me expliques algunos detalles adicionales.'),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
                         Center(
                           child: GestureDetector(
                             onTap: () {
@@ -276,8 +275,8 @@ class _AnswerScreenState extends State<AnswerScreen> {
                             child: const Text(
                               'Volver a generar',
                               style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
                                 decoration: TextDecoration.underline,
                                 color: Colors.white,
                               ),
@@ -287,7 +286,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
@@ -295,7 +294,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
                           onPressed: () {},
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFDB5050),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -303,7 +302,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
                           child: const Text('Volver a grabar', style: TextStyle(color: Colors.white)),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
@@ -313,7 +312,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF607D8B),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -340,7 +339,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
         });
       },
       child: Container(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
           color: HexColor.fromHex('#617D8C'),
           borderRadius: BorderRadius.circular(8),
@@ -355,7 +354,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
         ),
         child: Text(
           text,
-          style: const TextStyle(fontSize: 16, color: Colors.white),
+          style: const TextStyle(fontSize: 14, color: Colors.white),
         ),
       ),
     );
