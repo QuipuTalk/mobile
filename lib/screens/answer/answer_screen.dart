@@ -11,16 +11,17 @@ class AnswerScreen extends StatefulWidget {
   State<AnswerScreen> createState() => _AnswerScreenState();
 }
 
-
-
 class _AnswerScreenState extends State<AnswerScreen> {
   final FlutterTts flutterTts = FlutterTts();
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool isPlaying = false;
-  bool isCustomizingResponse = false;
   bool isListening = false;
+  bool isCustomizingResponse = false;
   String? selectedVoiceName;
   final TextEditingController _responseController = TextEditingController();
+  List<String> messages = [
+    '¿Lograste encontrar la lección que te di la última vez? Porque si no, puedo explicártela nuevamente con más detalles.'
+  ];
 
   // Definimos las voces predefinidas
   final Map<String, Map<String, String>> predefinedVoices = {
@@ -108,7 +109,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        iconTheme: const IconThemeData( 
+        iconTheme: const IconThemeData(
           color: Colors.white,
         ),
         backgroundColor: const Color(0xFF2D4554),
@@ -122,210 +123,210 @@ class _AnswerScreenState extends State<AnswerScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Traducción:',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Container(
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
               padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.5),
-                    spreadRadius: 2,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Expanded(
-                    child: Text(
-                      '¿Lograste encontrar la lección que te di la última vez? Porque si no, puedo explicártela nuevamente con más detalles.',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0x7A8892),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: Icon(isPlaying ? Icons.pause : Icons.volume_up, color: const Color(
-                          0xFF1B455E)),
-                      onPressed: () => _playText(
-                        '¿Lograste encontrar la lección que te di la última vez? Porque si no, puedo explicártela nuevamente con más detalles.',
+              itemCount: messages.length,
+              itemBuilder: (context, index) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16.0),
+                  padding: const EdgeInsets.all(16.0),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.5),
+                        spreadRadius: 2,
+                        blurRadius: 5,
+                        offset: const Offset(0, 3),
                       ),
-
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          messages[index],
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          isPlaying ? Icons.pause : Icons.volume_up,
+                          color: const Color(0xFF1B455E),
+                        ),
+                        onPressed: () => _playText(messages[index]),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 20),
-            if (!isCustomizingResponse) ...[
-              Row(
+          ),
+          if (isCustomizingResponse)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
                 children: [
-                  const Text(
-                    'Elige una respuesta',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: TextField(
+                      controller: _responseController,
+                      decoration: InputDecoration(
+                        hintText: 'Mensaje',
+                        hintStyle: const TextStyle(color: Color(0xFFD9D9D9)),
+                        filled: true,
+                        fillColor: const Color(0xD92D4554),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      style: const TextStyle(color: Colors.white),
+                      onChanged: (text) {
+                        setState(() {});
+                      },
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Icon(
-                    Icons.sync,
-                    color: Colors.grey[700],
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF7A8892),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: _responseController.text.isEmpty
+                          ? Icon(isListening ? Icons.mic_off : Icons.mic, color: const Color(0xFFFFFFFF))
+                          : const Icon(Icons.send, color: Color(0xFFFFFFFF)),
+                      onPressed: _responseController.text.isEmpty
+                          ? _listen
+                          : () {
+                        if (_responseController.text.isNotEmpty) {
+                          setState(() {
+                            messages.add(_responseController.text);
+                            _responseController.clear();
+                            isCustomizingResponse = false;
+                          });
+                        }
+                      },
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFB0BEC5),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    _buildOption('Sí, encontré la lección, pero me costó entender algunos puntos. ¿Podrías aclararlos?'),
-                    const SizedBox(height: 10),
-                    _buildOption('No, no pude encontrarla. ¿Podrías explicármela de nuevo, por favor?'),
-                    const SizedBox(height: 10),
-                    _buildOption('Sí, la encontré y la revisé, pero me gustaría que me expliques algunos detalles adicionales.'),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            ),
+          if (!isCustomizingResponse)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFDB5050),
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text('Volver a grabar', style: TextStyle(color: Colors.white)),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        isCustomizingResponse = true;
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF607D8B),
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text('Personalizar respuesta', style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-            ] else ...[
-              Expanded(
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Row(
+                  Row(
                     children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _responseController,
-                          decoration: InputDecoration(
-                            hintText: 'Mensaje',
-                            hintStyle: const TextStyle(color: Color(0xFFD9D9D9)),
-                            filled: true,
-                            fillColor: const Color(0xD92D4554),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          ),
-                          style: const TextStyle(color: Colors.white),
-                          onChanged: (text) {
-                            setState(() {});
-                          },
+                      const Text(
+                        'Elige una respuesta',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(width: 10),
-                      if (_responseController.text.isEmpty)
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF7A8892),
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            icon: Icon(isListening ? Icons.mic_off : Icons.mic, color: const Color(0xFFFFFFFF)),
-                            onPressed: _listen,
-                          ),
-                        )
-                      else
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF7A8892),
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.send, color: Color(0xFFFFFFFF)),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ResponseDisplayScreen(response: _responseController.text),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+                      Icon(
+                        Icons.sync,
+                        color: Colors.grey[700],
+                      ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFB0BEC5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildOption('Sí, encontré la lección, pero me costó entender algunos puntos. ¿Podrías aclararlos?'),
+                        const SizedBox(height: 10),
+                        _buildOption('No, no pude encontrarla. ¿Podrías explicármela de nuevo, por favor?'),
+                        const SizedBox(height: 10),
+                        _buildOption('Sí, la encontré y la revisé, pero me gustaría que me expliques algunos detalles adicionales.'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {},
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFDB5050),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text('Volver a grabar', style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              isCustomizingResponse = true;
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF607D8B),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text('Personalizar respuesta',
+                              style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
 
   Widget _buildOption(String text) {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 16),
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          messages.add(text);
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 2,
+              blurRadius: 5,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(fontSize: 16),
+        ),
       ),
     );
   }
@@ -412,31 +413,35 @@ class ResponseDisplayScreen extends StatelessWidget {
             ),
             const SizedBox(height: 40),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFDB5050),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFDB5050),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
+                    child: const Text('Volver a grabar', style: TextStyle(color: Colors.white)),
                   ),
-                  child: const Text('Volver a grabar', style: TextStyle(color: Colors.white)),
                 ),
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF607D8B),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {},
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF607D8B),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
+                    child: const Text('Terminar conversación', style: TextStyle(color: Colors.white)),
                   ),
-                  child: const Text('Terminar conversación', style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),
