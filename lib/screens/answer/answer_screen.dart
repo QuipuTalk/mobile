@@ -4,6 +4,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quiputalk/screens/settings/settings_screen.dart';
 import 'package:quiputalk/utils/hexadecimal_color.dart';
+import 'package:quiputalk/screens/answer/response_display_screen.dart';
 
 class AnswerScreen extends StatefulWidget {
   const AnswerScreen({super.key});
@@ -209,8 +210,17 @@ class _AnswerScreenState extends State<AnswerScreen> {
                         if (_responseController.text.isNotEmpty) {
                           setState(() {
                             messages.add(_responseController.text);
+                            String responseText = _responseController.text;
                             _responseController.clear();
                             isCustomizingResponse = false;
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ResponseDisplayScreen(response: responseText),
+                              ),
+                            );
+
                           });
                         }
                       },
@@ -337,6 +347,12 @@ class _AnswerScreenState extends State<AnswerScreen> {
         setState(() {
           messages.add(text);
         });
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ResponseDisplayScreen(response: text),
+          ),
+        );
       },
       child: Container(
         padding: const EdgeInsets.all(12.0),
@@ -418,65 +434,4 @@ class _AnswerScreenState extends State<AnswerScreen> {
   }
 }
 
-class ResponseDisplayScreen extends StatelessWidget {
-  final String response;
 
-  const ResponseDisplayScreen({Key? key, required this.response}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF2D4554),
-        title: const Text('Respuesta Personalizada'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              response,
-              style: const TextStyle(fontSize: 18),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 40),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFDB5050),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text('Volver a grabar', style: TextStyle(color: Colors.white)),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF607D8B),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text('Terminar conversación', style: TextStyle(color: Colors.white)),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
