@@ -177,6 +177,8 @@ class _AnswerScreenState extends State<AnswerScreen> {
                   Expanded(
                     child: TextField(
                       controller: _responseController,
+                      maxLines: 5, // Permite que el TextField se expanda en líneas.
+                      minLines: 1, // Establece el mínimo número de líneas.
                       decoration: InputDecoration(
                         hintText: 'Mensaje',
                         hintStyle: const TextStyle(color: Color(0xFFD9D9D9)),
@@ -185,8 +187,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       style: const TextStyle(color: Colors.white),
                       onChanged: (text) {
