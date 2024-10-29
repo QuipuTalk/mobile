@@ -13,7 +13,23 @@ class AnswerScreen extends StatefulWidget {
   State<AnswerScreen> createState() => _AnswerScreenState();
 }
 
+enum MessageType {
+  system,
+  user,
+  signLanguage
+}
+
+class ChatMessage {
+  final String text;
+  final MessageType type;
+
+  ChatMessage(this.text, this.type);
+}
+
 class _AnswerScreenState extends State<AnswerScreen> {
+
+
+
   final FlutterTts flutterTts = FlutterTts();
   final stt.SpeechToText _speech = stt.SpeechToText();
   int? playingIndex; // Almacena el índice del mensaje que está siendo reproducido actualmente
@@ -21,15 +37,137 @@ class _AnswerScreenState extends State<AnswerScreen> {
   bool isCustomizingResponse = false;
   String? selectedVoiceName;
   final TextEditingController _responseController = TextEditingController();
-  List<String> messages = [
-    '¿Lograste encontrar la lección que te di la última vez? Porque si no, puedo explicártela nuevamente con más detalles.'
-  ];
-
   // Definimos las voces predefinidas
   final Map<String, Map<String, String>> predefinedVoices = {
     'es-es-x-eef-local': {'locale': 'es-ES', 'label': 'Masculina'},
     'es-us-x-sfb-network': {'locale': 'es-US', 'label': 'Femenina'},
   };
+
+
+/*  List<String> messages = [
+    '¿Lograste encontrar la lección que te di la última vez? Porque si no, puedo explicártela nuevamente con más detalles.'
+  ];*/
+
+  List<ChatMessage> messages = [
+    ChatMessage(
+        '¿Lograste encontrar la lección que te di la última vez? Porque si no, puedo explicártela nuevamente con más detalles.',
+        MessageType.signLanguage
+    )
+  ];
+
+// 2. Modifica el método _addMessage para manejar ChatMessage:
+  void _addMessage(String text, MessageType type) {
+    setState(() {
+      messages.add(ChatMessage(text, type));
+    });
+  }
+
+  // Método auxiliar para obtener el estilo del mensaje según su tipo
+  BoxDecoration _getMessageDecoration(MessageType type) {
+    switch (type) {
+      case MessageType.system:
+        return BoxDecoration(
+          color: const Color(0xFFE8EAF6),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 1,
+              blurRadius: 3,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        );
+      case MessageType.user:
+        return BoxDecoration(
+          color: const Color(0xFF2D4554),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 1,
+              blurRadius: 3,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        );
+      case MessageType.signLanguage:
+        return BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF7B9DB0), width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 1,
+              blurRadius: 3,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        );
+    }
+  }
+
+  // Método para construir el widget del mensaje
+  Widget _buildMessageWidget(ChatMessage message, int index) {
+    bool isUserMessage = message.type == MessageType.user;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16.0),
+      child: Row(
+        mainAxisAlignment: isUserMessage
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
+        children: [
+          if (!isUserMessage && message.type == MessageType.signLanguage)
+            const Padding(
+              padding: EdgeInsets.only(right: 8.0),
+              child: Icon(Icons.sign_language, color: Color(0xFF7B9DB0)),
+            ),
+          if (!isUserMessage && message.type == MessageType.system)
+            const Padding(
+              padding: EdgeInsets.only(right: 8.0),
+              child: Icon(Icons.android, color: Color(0xFF2D4554)),
+            ),
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: _getMessageDecoration(message.type),
+              child: Column(
+                crossAxisAlignment: isUserMessage
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    message.text,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: isUserMessage ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  if (!isUserMessage)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            playingIndex == index ? Icons.stop : Icons.volume_up,
+                            color: const Color(0xFF1B455E),
+                            size: 20,
+                          ),
+                          onPressed: () => _playText(message.text, index),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   @override
   void initState() {
@@ -135,42 +273,9 @@ class _AnswerScreenState extends State<AnswerScreen> {
             child: ListView.builder(
               padding: const EdgeInsets.all(16.0),
               itemCount: messages.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 16.0),
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.5),
-                        spreadRadius: 2,
-                        blurRadius: 5,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          messages[index],
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          playingIndex == index ? Icons.stop : Icons.volume_up,
-                          color: const Color(0xFF1B455E),
-                        ),
-                        onPressed: () => _playText(messages[index], index),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                itemBuilder: (context, index) {
+                  return _buildMessageWidget(messages[index], index);
+                }
             ),
           ),
           if (isCustomizingResponse)
@@ -214,7 +319,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
                           : () {
                         if (_responseController.text.isNotEmpty) {
                           setState(() {
-                            messages.add(_responseController.text);
+                            _addMessage(_responseController.text, MessageType.user);
                             String responseText = _responseController.text;
                             _responseController.clear();
                             isCustomizingResponse = false;
@@ -350,7 +455,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
     return GestureDetector(
       onTap: () {
         setState(() {
-          messages.add(text);
+          _addMessage(text, MessageType.user);  // Usa _addMessage en lugar de messages.add
         });
         Navigator.push(
           context,
