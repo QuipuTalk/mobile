@@ -5,6 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quiputalk/screens/settings/settings_screen.dart';
 import 'package:quiputalk/utils/hexadecimal_color.dart';
 import 'package:quiputalk/screens/answer/response_display_screen.dart';
+import 'package:quiputalk/widgets/chat_message.dart';
+import 'package:quiputalk/widgets/chat_message_widget.dart';
+import 'package:quiputalk/widgets/option_widget.dart';
+
 
 class AnswerScreen extends StatefulWidget {
   const AnswerScreen({super.key});
@@ -13,22 +17,7 @@ class AnswerScreen extends StatefulWidget {
   State<AnswerScreen> createState() => _AnswerScreenState();
 }
 
-enum MessageType {
-  system,
-  user,
-  signLanguage
-}
-
-class ChatMessage {
-  final String text;
-  final MessageType type;
-
-  ChatMessage(this.text, this.type);
-}
-
 class _AnswerScreenState extends State<AnswerScreen> {
-
-
 
   final FlutterTts flutterTts = FlutterTts();
   final stt.SpeechToText _speech = stt.SpeechToText();
@@ -42,7 +31,6 @@ class _AnswerScreenState extends State<AnswerScreen> {
     'es-es-x-eef-local': {'locale': 'es-ES', 'label': 'Masculina'},
     'es-us-x-sfb-network': {'locale': 'es-US', 'label': 'Femenina'},
   };
-
 
 /*  List<String> messages = [
     '¿Lograste encontrar la lección que te di la última vez? Porque si no, puedo explicártela nuevamente con más detalles.'
@@ -60,112 +48,6 @@ class _AnswerScreenState extends State<AnswerScreen> {
     setState(() {
       messages.add(ChatMessage(text, type));
     });
-  }
-
-  // Método auxiliar para obtener el estilo del mensaje según su tipo
-  BoxDecoration _getMessageDecoration(MessageType type) {
-    switch (type) {
-      case MessageType.system:
-        return BoxDecoration(
-          color: const Color(0xFFE8EAF6),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              spreadRadius: 1,
-              blurRadius: 3,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        );
-      case MessageType.user:
-        return BoxDecoration(
-          color: const Color(0xFF2D4554),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              spreadRadius: 1,
-              blurRadius: 3,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        );
-      case MessageType.signLanguage:
-        return BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF7B9DB0), width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              spreadRadius: 1,
-              blurRadius: 3,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        );
-    }
-  }
-
-  // Método para construir el widget del mensaje
-  Widget _buildMessageWidget(ChatMessage message, int index) {
-    bool isUserMessage = message.type == MessageType.user;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16.0),
-      child: Row(
-        mainAxisAlignment: isUserMessage
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-        children: [
-          if (!isUserMessage && message.type == MessageType.signLanguage)
-            const Padding(
-              padding: EdgeInsets.only(right: 8.0),
-              child: Icon(Icons.sign_language, color: Color(0xFF7B9DB0)),
-            ),
-          if (!isUserMessage && message.type == MessageType.system)
-            const Padding(
-              padding: EdgeInsets.only(right: 8.0),
-              child: Icon(Icons.android, color: Color(0xFF2D4554)),
-            ),
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: _getMessageDecoration(message.type),
-              child: Column(
-                crossAxisAlignment: isUserMessage
-                    ? CrossAxisAlignment.end
-                    : CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    message.text,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: isUserMessage ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                  if (!isUserMessage)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            playingIndex == index ? Icons.stop : Icons.volume_up,
-                            color: const Color(0xFF1B455E),
-                            size: 20,
-                          ),
-                          onPressed: () => _playText(message.text, index),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
 
@@ -246,8 +128,6 @@ class _AnswerScreenState extends State<AnswerScreen> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -273,9 +153,14 @@ class _AnswerScreenState extends State<AnswerScreen> {
             child: ListView.builder(
               padding: const EdgeInsets.all(16.0),
               itemCount: messages.length,
-                itemBuilder: (context, index) {
-                  return _buildMessageWidget(messages[index], index);
-                }
+              itemBuilder: (context, index) {
+                return ChatMessageWidget(
+                  message: messages[index],
+                  index: index,
+                  playingIndex: playingIndex,
+                  playText: _playText,
+                );
+              },
             ),
           ),
           if (isCustomizingResponse)
@@ -381,11 +266,50 @@ class _AnswerScreenState extends State<AnswerScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        _buildOption('Sí, encontré la lección, pero me costó entender algunos puntos. ¿Podrías aclararlos?'),
+                        OptionWidget(
+                          text: 'Sí, encontré la lección, pero me costó entender algunos puntos. ¿Podrías aclararlos?',
+                          onTap: () {
+                            setState(() {
+                              _addMessage('Sí, encontré la lección, pero me costó entender algunos puntos. ¿Podrías aclararlos?', MessageType.user);
+                            });
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ResponseDisplayScreen(response: 'Sí, encontré la lección...'),
+                              ),
+                            );
+                          },
+                        ),
                         const SizedBox(height: 8),
-                        _buildOption('No, no pude encontrarla. ¿Podrías explicármela de nuevo, por favor?'),
+                        OptionWidget(
+                          text: 'No, no pude encontrarla. ¿Podrías explicármela de nuevo, por favor?',
+                          onTap: () {
+                            setState(() {
+                              _addMessage('No, no pude encontrarla. ¿Podrías explicármela de nuevo, por favor?', MessageType.user);
+                            });
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ResponseDisplayScreen(response: 'No, no pude encontrarla. ¿Podrías explicármela de nuevo, por favor?'),
+                              ),
+                            );
+                          },
+                        ),
                         const SizedBox(height: 8),
-                        _buildOption('Sí, la encontré y la revisé, pero me gustaría que me expliques algunos detalles adicionales.'),
+                        OptionWidget(
+                          text: 'Sí, la encontré y la revisé, pero me gustaría que me expliques algunos detalles adicionales.',
+                          onTap: () {
+                            setState(() {
+                              _addMessage('Sí, la encontré y la revisé, pero me gustaría que me expliques algunos detalles adicionales.', MessageType.user);
+                            });
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ResponseDisplayScreen(response: 'Sí, la encontré y la revisé, pero me gustaría que me expliques algunos detalles adicionales.'),
+                              ),
+                            );
+                          },
+                        ),
                         const SizedBox(height: 16),
                         Center(
                           child: GestureDetector(
@@ -447,41 +371,6 @@ class _AnswerScreenState extends State<AnswerScreen> {
               ),
             ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildOption(String text) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _addMessage(text, MessageType.user);  // Usa _addMessage en lugar de messages.add
-        });
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ResponseDisplayScreen(response: text),
-          ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(12.0),
-        decoration: BoxDecoration(
-          color: HexColor.fromHex('#617D8C'),
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              spreadRadius: 2,
-              blurRadius: 5,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Text(
-          text,
-          style: const TextStyle(fontSize: 14, color: Colors.white),
-        ),
       ),
     );
   }
