@@ -16,7 +16,7 @@ class AnswerScreen extends StatefulWidget {
 class _AnswerScreenState extends State<AnswerScreen> {
   final FlutterTts flutterTts = FlutterTts();
   final stt.SpeechToText _speech = stt.SpeechToText();
-  bool isPlaying = false;
+  int? playingIndex; // Almacena el índice del mensaje que está siendo reproducido actualmente
   bool isListening = false;
   bool isCustomizingResponse = false;
   String? selectedVoiceName;
@@ -70,15 +70,16 @@ class _AnswerScreenState extends State<AnswerScreen> {
 
   void onTtsComplete() {
     setState(() {
-      isPlaying = false;
+      playingIndex = null;
     });
   }
 
-  Future<void> _playText(String text) async {
-    if (isPlaying) {
+  Future<void> _playText(String text, int index) async {
+    if (playingIndex == index) {
+      // Si el índice del mensaje es el mismo, detén la reproducción
       await flutterTts.stop();
       setState(() {
-        isPlaying = false;
+        playingIndex = null; // No hay ningún mensaje reproduciéndose
       });
       return;
     }
@@ -98,7 +99,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
       await flutterTts.setVolume(1.0);
 
       setState(() {
-        isPlaying = true;
+        playingIndex = index; // Actualiza el índice del mensaje que se está reproduciendo
       });
 
       await flutterTts.speak(text);
@@ -107,10 +108,13 @@ class _AnswerScreenState extends State<AnswerScreen> {
     }
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        title: const Text('Conversación',style: TextStyle(color: Colors.white),),
         iconTheme: const IconThemeData(
           color: Colors.white,
         ),
@@ -158,10 +162,10 @@ class _AnswerScreenState extends State<AnswerScreen> {
                       ),
                       IconButton(
                         icon: Icon(
-                          isPlaying ? Icons.pause : Icons.volume_up,
+                          playingIndex == index ? Icons.stop : Icons.volume_up,
                           color: const Color(0xFF1B455E),
                         ),
-                        onPressed: () => _playText(messages[index]),
+                        onPressed: () => _playText(messages[index], index),
                       ),
                     ],
                   ),
