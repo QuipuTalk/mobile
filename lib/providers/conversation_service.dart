@@ -17,8 +17,19 @@ class ConversationService extends ChangeNotifier {
   List<ChatMessage> get messages => List.unmodifiable(_messages);
 
   void addMessage(String text, MessageType type) {
-    _messages.add(ChatMessage(text, type));
-    notifyListeners();
+
+    if(verifyLastMessageIsNotDuplicated(text, type)){
+      _messages.add(ChatMessage(text, type));
+      notifyListeners();
+    }
+
+  }
+
+  bool verifyLastMessageIsNotDuplicated(String text, MessageType type){
+    if (_messages.isEmpty || _messages.last.text != text || _messages.last.type != type) {
+        return true;
+    }
+    return false;
   }
 
   void clearMessages() {

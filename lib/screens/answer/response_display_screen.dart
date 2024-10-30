@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:quiputalk/providers/camera_controller_service.dart';
 import 'package:quiputalk/screens/settings/settings_screen.dart';
 import 'package:quiputalk/utils/hexadecimal_color.dart';
 
 import '../../providers/conversation_service.dart';
 import '../../routes/conversation_navigator.dart';
+import '../camera/camera_screen.dart';
 
 class ResponseDisplayScreen extends StatelessWidget {
   final String response;
@@ -76,8 +78,10 @@ class ResponseDisplayScreen extends StatelessWidget {
                 FractionallySizedBox(
                   widthFactor: 0.7,
                   child: ElevatedButton(
-                    onPressed: () {
-                      ConversationNavigator.startNewRecording(context);
+                    onPressed: () async{
+/*                      ConversationNavigator.startNewRecording(context);*/
+                      await CameraControllerService.resetCamera();
+                      await ConversationNavigator.navigateToCameraScreen(context);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFDB5050),

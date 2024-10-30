@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:quiputalk/screens/camera/video_screen.dart';
 
+import '../../providers/camera_controller_service.dart';
+import '../../routes/conversation_navigator.dart';
+
 class CameraScreen extends StatefulWidget {
   const CameraScreen({Key? key}) : super(key: key);
 
@@ -13,7 +16,7 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver {
-  CameraController? _cameraController;
+  CameraController? get _cameraController => CameraControllerService.cameraController;
   bool _isRecording = false;
   int _recordingDuration = 0;
   Timer? _recordingTimer;
@@ -25,35 +28,24 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     _initializeCamera();
   }
 
+  Future<void> _initializeCamera() async {
+    await CameraControllerService.initializeCamera();
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _cameraController?.dispose();
     _recordingTimer?.cancel();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) {
-      return;
-    }
-    if (state == AppLifecycleState.inactive) {
-      _cameraController?.dispose();
-    } else if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.resumed) {
       _initializeCamera();
-    }
-  }
-
-  Future<void> _initializeCamera() async {
-    final cameras = await availableCameras();
-    _cameraController = CameraController(cameras[0], ResolutionPreset.high, enableAudio: true);
-
-    try {
-      await _cameraController!.initialize();
-      setState(() {});
-    } catch (e) {
-      print('Error initializing camera: $e');
+    } else if (state == AppLifecycleState.inactive) {
+      CameraControllerService.disposeCamera();
     }
   }
 
@@ -166,7 +158,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     }
   }
 
-
+  // En el método _stopRecording, actualiza la navegación:
   Future<void> _stopRecording() async {
     if (!_cameraController!.value.isRecordingVideo) return;
 
@@ -179,15 +171,11 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       final tempPath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4';
       await File(videoFile.path).copy(tempPath);
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => VideoScreen(videoPath: tempPath)),
-      );
+      await ConversationNavigator.navigateToVideo(context, tempPath);
     } catch (e) {
       print('Error stopping video recording: $e');
     }
   }
-
 
   void _startTimer() {
     _recordingDuration = 0;

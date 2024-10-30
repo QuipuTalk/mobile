@@ -140,11 +140,12 @@ class _VideoScreenState extends State<VideoScreen> {
           Expanded(
             child: ElevatedButton(
               onPressed: () {
-                _controller.dispose();
+/*                _controller.dispose(); // Libera el controlador del video
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const CameraScreen()),
-                );
+                );*/
+                Navigator.pop(context);
               },
               style: ButtonStyle(
                 backgroundColor:

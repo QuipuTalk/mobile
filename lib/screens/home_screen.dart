@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:quiputalk/providers/camera_controller_service.dart';
+import 'package:quiputalk/routes/conversation_navigator.dart';
 import 'package:quiputalk/screens/camera/camera_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
@@ -94,17 +96,20 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _navigateToCameraScreen() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const CameraScreen()),
-    );
-  }
-
   void _navigateToSettings() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const SettingsScreen()),
+    );
+  }
+
+  void _navigateToCamera(){
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CameraScreen(),
+        settings: RouteSettings(name: 'CameraScreen'),
+      ),
     );
   }
 
@@ -194,7 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: _buildButton(
                                 'Traducción de LSP',
                                 Icons.handshake_outlined,
-                                _navigateToCameraScreen,
+                                _navigateToCamera,
                                 HexColor.fromHex("#FF5034"),
                               ),
                             ),
