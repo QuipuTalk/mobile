@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:quiputalk/screens/settings/settings_screen.dart';
 import 'package:quiputalk/utils/hexadecimal_color.dart';
 
+import '../../providers/conversation_service.dart';
+import '../../routes/conversation_navigator.dart';
+
 class ResponseDisplayScreen extends StatelessWidget {
   final String response;
+  final ConversationService _conversationService = ConversationService();
 
-  const ResponseDisplayScreen({Key? key, required this.response}) : super(key: key);
+  ResponseDisplayScreen({Key? key, required this.response}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +77,7 @@ class ResponseDisplayScreen extends StatelessWidget {
                   widthFactor: 0.7,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context);
+                      ConversationNavigator.startNewRecording(context);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFDB5050),
@@ -89,7 +93,9 @@ class ResponseDisplayScreen extends StatelessWidget {
                 FractionallySizedBox(
                   widthFactor: 0.7,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF607D8B),
                       padding: const EdgeInsets.symmetric(vertical: 16),

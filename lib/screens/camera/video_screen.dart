@@ -7,6 +7,8 @@ import 'package:video_trimmer/video_trimmer.dart';
 import 'package:quiputalk/screens/edit/trimmer_view.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../routes/conversation_navigator.dart';
+
 class VideoScreen extends StatefulWidget {
   final String videoPath;
   const VideoScreen({super.key, required this.videoPath});
@@ -202,11 +204,10 @@ class _VideoScreenState extends State<VideoScreen> {
     );
 
     Future.delayed(const Duration(seconds: 3), () {
-      Navigator.of(context).pop();
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const AnswerScreen()),
-      );
+      Navigator.of(context).pop(); // Cierra el diálogo
+      // Aquí iría la traducción real del video
+      String translatedMessage = "Este es el mensaje traducido del lenguaje de señas";
+      ConversationNavigator.navigateToAnswer(context, translatedMessage);
     });
   }
 

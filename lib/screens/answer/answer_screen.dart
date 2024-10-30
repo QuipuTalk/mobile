@@ -9,6 +9,9 @@ import 'package:quiputalk/widgets/chat_message.dart';
 import 'package:quiputalk/widgets/chat_message_widget.dart';
 import 'package:quiputalk/widgets/option_widget.dart';
 
+import '../../providers/conversation_service.dart';
+import '../../routes/conversation_navigator.dart';
+
 
 class AnswerScreen extends StatefulWidget {
   const AnswerScreen({super.key});
@@ -18,6 +21,8 @@ class AnswerScreen extends StatefulWidget {
 }
 
 class _AnswerScreenState extends State<AnswerScreen> {
+
+  final ConversationService _conversationService = ConversationService();
 
   final FlutterTts flutterTts = FlutterTts();
   final stt.SpeechToText _speech = stt.SpeechToText();
@@ -45,9 +50,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
 
 // 2. Modifica el método _addMessage para manejar ChatMessage:
   void _addMessage(String text, MessageType type) {
-    setState(() {
-      messages.add(ChatMessage(text, type));
-    });
+    _conversationService.addMessage(text, type);
   }
 
 
@@ -150,15 +153,20 @@ class _AnswerScreenState extends State<AnswerScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16.0),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                return ChatMessageWidget(
-                  message: messages[index],
-                  index: index,
-                  playingIndex: playingIndex,
-                  playText: _playText,
+            child: ListenableBuilder(
+              listenable: _conversationService,
+              builder: (context, child) {
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16.0),
+                  itemCount: _conversationService.messages.length,
+                  itemBuilder: (context, index) {
+                    return ChatMessageWidget(
+                      message: _conversationService.messages[index],
+                      index: index,
+                      playingIndex: playingIndex,
+                      playText: _playText,
+                    );
+                  },
                 );
               },
             ),
@@ -269,45 +277,27 @@ class _AnswerScreenState extends State<AnswerScreen> {
                         OptionWidget(
                           text: 'Sí, encontré la lección, pero me costó entender algunos puntos. ¿Podrías aclararlos?',
                           onTap: () {
-                            setState(() {
-                              _addMessage('Sí, encontré la lección, pero me costó entender algunos puntos. ¿Podrías aclararlos?', MessageType.user);
-                            });
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ResponseDisplayScreen(response: 'Sí, encontré la lección...'),
-                              ),
-                            );
+                            String response = 'Sí, encontré la lección, pero me costó entender algunos puntos. ¿Podrías aclararlos?';
+                            _conversationService.addMessage(response, MessageType.user);
+                            ConversationNavigator.navigateToResponseDisplay(context, response);
                           },
                         ),
                         const SizedBox(height: 8),
                         OptionWidget(
                           text: 'No, no pude encontrarla. ¿Podrías explicármela de nuevo, por favor?',
                           onTap: () {
-                            setState(() {
-                              _addMessage('No, no pude encontrarla. ¿Podrías explicármela de nuevo, por favor?', MessageType.user);
-                            });
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ResponseDisplayScreen(response: 'No, no pude encontrarla. ¿Podrías explicármela de nuevo, por favor?'),
-                              ),
-                            );
+                            String response = 'No, no pude encontrarla. ¿Podrías explicármela de nuevo, por favor?';
+                            _conversationService.addMessage(response, MessageType.user);
+                            ConversationNavigator.navigateToResponseDisplay(context, response);
                           },
                         ),
                         const SizedBox(height: 8),
                         OptionWidget(
                           text: 'Sí, la encontré y la revisé, pero me gustaría que me expliques algunos detalles adicionales.',
                           onTap: () {
-                            setState(() {
-                              _addMessage('Sí, la encontré y la revisé, pero me gustaría que me expliques algunos detalles adicionales.', MessageType.user);
-                            });
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ResponseDisplayScreen(response: 'Sí, la encontré y la revisé, pero me gustaría que me expliques algunos detalles adicionales.'),
-                              ),
-                            );
+                            String response = 'Sí, la encontré y la revisé, pero me gustaría que me expliques algunos detalles adicionales.';
+                            _conversationService.addMessage(response, MessageType.user);
+                            ConversationNavigator.navigateToResponseDisplay(context, response);
                           },
                         ),
                         const SizedBox(height: 16),
@@ -335,7 +325,9 @@ class _AnswerScreenState extends State<AnswerScreen> {
                     children: [
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            ConversationNavigator.startNewRecording(context);
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFDB5050),
                             padding: const EdgeInsets.symmetric(vertical: 12),
