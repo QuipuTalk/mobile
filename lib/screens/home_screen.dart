@@ -9,6 +9,8 @@ import 'package:quiputalk/utils/hexadecimal_color.dart';
 import 'package:quiputalk/screens/settings/settings_screen.dart';
 import 'package:quiputalk/utils/rounded_card.dart';
 
+import '../providers/backend_service.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -21,10 +23,16 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isConnected = true;
   bool _isFirstTime = true;
 
+  void _testConnection() async {
+    BackendService backendService = BackendService();
+    await backendService.testBackendConnection();
+  }
+
   @override
   void initState() {
     super.initState();
     _initializeConnectivity();
+    _testConnection();
     _checkFirstTime();
     _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
   }

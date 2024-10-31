@@ -44,16 +44,16 @@ class ConversationNavigator {
     );
   }
 
-  static Future<void> navigateToAnswer(BuildContext context, String translatedMessage) async {
+/*  static Future<void> navigateToAnswer(BuildContext context, String translatedMessage) async {
     _conversationService.addMessage(translatedMessage, MessageType.signLanguage);
     await Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => AnswerScreen(),
+        builder: (context) => AnswerScreen(initialMessage: 'Hola que hace', sessionId: '',),
         settings: const RouteSettings(name: 'AnswerScreen'),
       ),
     );
-  }
+  }*/
 
 /*  static Future<void> navigateToResponseDisplay(BuildContext context, String response) async {
     // Añadir la respuesta del usuario al servicio

@@ -1,13 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:quiputalk/screens/answer/answer_screen.dart';
-import 'package:quiputalk/screens/camera/camera_screen.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_trimmer/video_trimmer.dart';
 import 'package:quiputalk/screens/edit/trimmer_view.dart';
 import 'package:permission_handler/permission_handler.dart';
-
+import '../../providers/camera_controller_service.dart';
 import '../../routes/conversation_navigator.dart';
+import '../../providers/backend_service.dart';
+import '../answer/answer_screen.dart';
 
 class VideoScreen extends StatefulWidget {
   final String videoPath;
@@ -20,6 +20,7 @@ class _VideoScreenState extends State<VideoScreen> {
   late VideoPlayerController _controller;
   late Future<void> _initializeVideoPlayerFuture;
   late String _currentVideoPath;
+  final BackendService _backendService = BackendService(); // Instancia de BackendService
 
   @override
   void initState() {
@@ -36,6 +37,7 @@ class _VideoScreenState extends State<VideoScreen> {
 
   @override
   void dispose() {
+    _controller.pause();
     _controller.dispose();
     super.dispose();
   }
@@ -139,13 +141,26 @@ class _VideoScreenState extends State<VideoScreen> {
         children: [
           Expanded(
             child: ElevatedButton(
-              onPressed: () {
-/*                _controller.dispose(); // Libera el controlador del video
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CameraScreen()),
-                );*/
-                Navigator.pop(context);
+              onPressed: ()  async{
+                // 1. Detener y liberar el reproductor de video
+                await _controller.pause();
+                await _controller.dispose();
+
+                // 2. Eliminar el archivo temporal de video si es necesario
+                try {
+                  final videoFile = File(_currentVideoPath);
+                  if (await videoFile.exists()) {
+                await videoFile.delete();
+                }
+                } catch (e) {
+                print('Error al eliminar el archivo de video: $e');
+                }
+
+                // 3. Reinicializar la cámara y navegar
+                if (mounted) {
+                await CameraControllerService.resetCamera();
+                await ConversationNavigator.navigateToCameraScreen(context);
+                }
               },
               style: ButtonStyle(
                 backgroundColor:
@@ -174,7 +189,7 @@ class _VideoScreenState extends State<VideoScreen> {
     );
   }
 
-  void _showLoadingDialogAndNavigate() {
+  Future<void> _showLoadingDialogAndNavigate() async {
     showDialog(
       barrierDismissible: false,
       context: context,
@@ -204,11 +219,32 @@ class _VideoScreenState extends State<VideoScreen> {
       },
     );
 
+    // Llamar al backend para iniciar una nueva sesión
+    String? sessionId = await _backendService.startSession();
+
+    // Cerrar el diálogo después de un tiempo simulado de procesamiento
     Future.delayed(const Duration(seconds: 3), () {
       Navigator.of(context).pop(); // Cierra el diálogo
-      // Aquí iría la traducción real del video
-      String translatedMessage = "Este es el mensaje traducido del lenguaje de señas";
-      ConversationNavigator.navigateToAnswer(context, translatedMessage);
+
+      if (sessionId != null) {
+        // Aquí iría la traducción real del video
+        String translatedMessage =
+            "Este es el mensaje traducido del lenguaje de señas";
+
+        // Navegar a AnswerScreen pasando el session_id
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AnswerScreen(
+              initialMessage: translatedMessage,
+              sessionId: sessionId,
+            ),
+          ),
+        );
+      } else {
+        // Manejar el caso de error si no se pudo obtener el session_id
+        print("Error al iniciar una nueva sesión");
+      }
     });
   }
 

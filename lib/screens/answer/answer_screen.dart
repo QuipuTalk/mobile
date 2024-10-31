@@ -8,13 +8,22 @@ import 'package:quiputalk/screens/answer/response_display_screen.dart';
 import 'package:quiputalk/widgets/chat_message.dart';
 import 'package:quiputalk/widgets/chat_message_widget.dart';
 import 'package:quiputalk/widgets/option_widget.dart';
-
+import 'dart:developer';
 import '../../providers/conversation_service.dart';
 import '../../routes/conversation_navigator.dart';
 
 
 class AnswerScreen extends StatefulWidget {
-  const AnswerScreen({super.key});
+
+  final String initialMessage;
+  final String sessionId;
+
+  const AnswerScreen({
+    Key? key,
+    required this.initialMessage,
+    required this.sessionId,
+  }) : super(key: key);
+
 
   @override
   State<AnswerScreen> createState() => _AnswerScreenState();
@@ -22,8 +31,9 @@ class AnswerScreen extends StatefulWidget {
 
 class _AnswerScreenState extends State<AnswerScreen> {
 
-  final ConversationService _conversationService = ConversationService();
 
+  final ConversationService _conversationService = ConversationService();
+  final ScrollController _scrollController = ScrollController();
   final FlutterTts flutterTts = FlutterTts();
   final stt.SpeechToText _speech = stt.SpeechToText();
   int? playingIndex; // Almacena el índice del mensaje que está siendo reproducido actualmente
@@ -51,14 +61,41 @@ class _AnswerScreenState extends State<AnswerScreen> {
 // 2. Modifica el método _addMessage para manejar ChatMessage:
   void _addMessage(String text, MessageType type) {
     _conversationService.addMessage(text, type);
+    // Programa el scroll al final después de que se actualice el estado
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom();
+    });
   }
-
 
   @override
   void initState() {
     super.initState();
     _loadVoicePreference();
     flutterTts.setCompletionHandler(() => onTtsComplete());
+
+    // Log para verificar si sessionId se pasó correctamente
+    log("Session ID: ${widget.sessionId}");
+
+    // Agregar el mensaje inicial al historial de mensajes
+    if (widget.initialMessage.isNotEmpty) {
+      _conversationService.addMessage(widget.initialMessage, MessageType.signLanguage);
+    }
+
+    // Programa el scroll al final después de que el widget se construya
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom();
+    });
+  }
+
+  // Método para hacer scroll hasta el final
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   void _navigateToSettings() async {
@@ -79,6 +116,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     flutterTts.stop(); // Detener el TTS cuando la pantalla se destruya
     super.dispose();
   }
@@ -157,6 +195,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
               listenable: _conversationService,
               builder: (context, child) {
                 return ListView.builder(
+                  controller: _scrollController,
                   padding: const EdgeInsets.all(16.0),
                   itemCount: _conversationService.messages.length,
                   itemBuilder: (context, index) {
