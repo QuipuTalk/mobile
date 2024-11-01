@@ -104,6 +104,7 @@ class ResponseDisplayScreen extends StatelessWidget {
                     onPressed: () {
                       // Terminar la conversación y limpiar el sessionId
                       sessionService.clearSessionId();
+                      _conversationService.clearMessages();
                       Navigator.popUntil(context, (route) => route.isFirst);
                     },
                     style: ElevatedButton.styleFrom(
