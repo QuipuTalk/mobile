@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:quiputalk/providers/session_service.dart';
 import 'package:quiputalk/screens/splash_screen.dart'; // Asegúrate de importar tu SplashScreen
+import 'package:provider/provider.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => SessionService()),
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

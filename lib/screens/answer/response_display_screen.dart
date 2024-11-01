@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:quiputalk/providers/camera_controller_service.dart';
 import 'package:quiputalk/screens/settings/settings_screen.dart';
 import 'package:quiputalk/utils/hexadecimal_color.dart';
 
 import '../../providers/conversation_service.dart';
+import '../../providers/session_service.dart';
 import '../../routes/conversation_navigator.dart';
 import '../camera/camera_screen.dart';
 
@@ -15,6 +17,8 @@ class ResponseDisplayScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sessionService = Provider.of<SessionService>(context, listen: false);
+
     void _navigateToSettings() async {
       await Navigator.push(
         context,
@@ -98,7 +102,9 @@ class ResponseDisplayScreen extends StatelessWidget {
                   widthFactor: 0.7,
                   child: ElevatedButton(
                     onPressed: () {
-
+                      // Terminar la conversación y limpiar el sessionId
+                      sessionService.clearSessionId();
+                      Navigator.popUntil(context, (route) => route.isFirst);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF607D8B),

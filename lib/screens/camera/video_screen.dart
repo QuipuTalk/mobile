@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_trimmer/video_trimmer.dart';
 import 'package:quiputalk/screens/edit/trimmer_view.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../providers/camera_controller_service.dart';
+import '../../providers/session_service.dart';
 import '../../routes/conversation_navigator.dart';
 import '../../providers/backend_service.dart';
 import '../answer/answer_screen.dart';
@@ -219,8 +221,16 @@ class _VideoScreenState extends State<VideoScreen> {
       },
     );
 
-    // Llamar al backend para iniciar una nueva sesión
-    String? sessionId = await _backendService.startSession();
+
+    final sessionService = Provider.of<SessionService>(context, listen: false);
+    // Verificar si ya existe un sessionId activo
+    String? sessionId = sessionService.sessionId;
+
+    // Si no existe un sessionId, iniciar una nueva sesión
+    if (sessionId == null) {
+      sessionId = await _backendService.startSession();
+      sessionService.setSessionId(sessionId!); // Almacenar el nuevo sessionId en el SessionService
+    }
 
     // Cerrar el diálogo después de un tiempo simulado de procesamiento
     Future.delayed(const Duration(seconds: 3), () {
@@ -237,7 +247,7 @@ class _VideoScreenState extends State<VideoScreen> {
           MaterialPageRoute(
             builder: (context) => AnswerScreen(
               initialMessage: translatedMessage,
-              sessionId: sessionId,
+              sessionId: sessionId!,
             ),
           ),
         );
