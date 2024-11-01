@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:quiputalk/utils/predefined_voices.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quiputalk/screens/settings/settings_screen.dart';
@@ -9,6 +10,7 @@ import 'package:quiputalk/widgets/chat_message.dart';
 import 'package:quiputalk/widgets/chat_message_widget.dart';
 import 'package:quiputalk/widgets/option_widget.dart';
 import 'dart:developer';
+import '../../providers/backend_service.dart';
 import '../../providers/conversation_service.dart';
 import '../../routes/conversation_navigator.dart';
 
@@ -32,40 +34,29 @@ class AnswerScreen extends StatefulWidget {
 class _AnswerScreenState extends State<AnswerScreen> {
 
 
+  //Services
   final ConversationService _conversationService = ConversationService();
+  final BackendService _backendService = BackendService();
+
+  //Controllers
   final ScrollController _scrollController = ScrollController();
+
+  //TTS
   final FlutterTts flutterTts = FlutterTts();
   final stt.SpeechToText _speech = stt.SpeechToText();
-  int? playingIndex; // Almacena el índice del mensaje que está siendo reproducido actualmente
+
+  //Variables
+  int? playingIndex;
   bool isListening = false;
   bool isCustomizingResponse = false;
   String? selectedVoiceName;
   final TextEditingController _responseController = TextEditingController();
-  // Definimos las voces predefinidas
-  final Map<String, Map<String, String>> predefinedVoices = {
-    'es-es-x-eef-local': {'locale': 'es-ES', 'label': 'Masculina'},
-    'es-us-x-sfb-network': {'locale': 'es-US', 'label': 'Femenina'},
-  };
+  List<String> suggestedReplies = [];
 
-/*  List<String> messages = [
-    '¿Lograste encontrar la lección que te di la última vez? Porque si no, puedo explicártela nuevamente con más detalles.'
-  ];*/
 
-  List<ChatMessage> messages = [
-    ChatMessage(
-        '¿Lograste encontrar la lección que te di la última vez? Porque si no, puedo explicártela nuevamente con más detalles.',
-        MessageType.signLanguage
-    )
-  ];
+  // We call voices
+  final Map<String, Map<String, String>> predefinedVoices = voices;
 
-// 2. Modifica el método _addMessage para manejar ChatMessage:
-  void _addMessage(String text, MessageType type) {
-    _conversationService.addMessage(text, type);
-    // Programa el scroll al final después de que se actualice el estado
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToBottom();
-    });
-  }
 
   @override
   void initState() {
@@ -79,6 +70,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
     // Agregar el mensaje inicial al historial de mensajes
     if (widget.initialMessage.isNotEmpty) {
       _conversationService.addMessage(widget.initialMessage, MessageType.signLanguage);
+      _getSuggestedReplies(widget.initialMessage, "");
     }
 
     // Programa el scroll al final después de que el widget se construya
@@ -87,15 +79,57 @@ class _AnswerScreenState extends State<AnswerScreen> {
     });
   }
 
-  // Método para hacer scroll hasta el final
-  void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    flutterTts.stop(); // Detener el TTS cuando la pantalla se destruya
+    super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadVoicePreference(); // Recargar preferencias si las dependencias cambian
+  }
+
+  void _addMessage(String text, MessageType type) {
+    _conversationService.addMessage(text, type);
+    _getSuggestedReplies(text, "");
+    // Programa el scroll al final después de que se actualice el estado
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom();
+    });
+  }
+
+  Future<void> _getSuggestedReplies(String userMessage, String userResponse) async {
+    String style = "formal"; // Aquí puedes cambiar el estilo si es necesario
+    List<String>? replies = await _backendService.getSuggestReplies(
+      userMessage: userMessage,
+      style: style,
+      sessionId: widget.sessionId,
+      userResponse: userResponse,
+    );
+
+    if (replies != null) {
+      setState(() {
+        suggestedReplies = replies;
+      });
     }
+  }
+
+
+  void onTtsComplete() {
+    setState(() {
+      playingIndex = null;
+    });
+  }
+
+  Future<void> _loadVoicePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      // Si no hay preferencia guardada, usa la voz masculina por defecto
+      selectedVoiceName = prefs.getString('voice_name') ?? 'es-es-x-eef-local';
+    });
   }
 
   void _navigateToSettings() async {
@@ -108,31 +142,15 @@ class _AnswerScreenState extends State<AnswerScreen> {
     await _loadVoicePreference(); // Recargar la preferencia después de regresar
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _loadVoicePreference(); // Recargar preferencias si las dependencias cambian
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    flutterTts.stop(); // Detener el TTS cuando la pantalla se destruya
-    super.dispose();
-  }
-
-  Future<void> _loadVoicePreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      // Si no hay preferencia guardada, usa la voz masculina por defecto
-      selectedVoiceName = prefs.getString('voice_name') ?? 'es-es-x-eef-local';
-    });
-  }
-
-  void onTtsComplete() {
-    setState(() {
-      playingIndex = null;
-    });
+  // Método para hacer scroll hasta el final
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   Future<void> _playText(String text, int index) async {
@@ -313,33 +331,22 @@ class _AnswerScreenState extends State<AnswerScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        OptionWidget(
+/*                        OptionWidget(
                           text: 'Sí, encontré la lección, pero me costó entender algunos puntos. ¿Podrías aclararlos?',
                           onTap: () {
                             String response = 'Sí, encontré la lección, pero me costó entender algunos puntos. ¿Podrías aclararlos?';
                             _conversationService.addMessage(response, MessageType.user);
                             ConversationNavigator.navigateToResponseDisplay(context, response);
                           },
-                        ),
-                        const SizedBox(height: 8),
-                        OptionWidget(
-                          text: 'No, no pude encontrarla. ¿Podrías explicármela de nuevo, por favor?',
-                          onTap: () {
-                            String response = 'No, no pude encontrarla. ¿Podrías explicármela de nuevo, por favor?';
-                            _conversationService.addMessage(response, MessageType.user);
-                            ConversationNavigator.navigateToResponseDisplay(context, response);
-                          },
-                        ),
-                        const SizedBox(height: 8),
-                        OptionWidget(
-                          text: 'Sí, la encontré y la revisé, pero me gustaría que me expliques algunos detalles adicionales.',
-                          onTap: () {
-                            String response = 'Sí, la encontré y la revisé, pero me gustaría que me expliques algunos detalles adicionales.';
-                            _conversationService.addMessage(response, MessageType.user);
-                            ConversationNavigator.navigateToResponseDisplay(context, response);
-                          },
-                        ),
-                        const SizedBox(height: 16),
+                        ),*/
+                        for (var reply in suggestedReplies)
+                          OptionWidget(
+                            text: reply,
+                            onTap: () {
+                              _conversationService.addMessage(reply, MessageType.user);
+                              ConversationNavigator.navigateToResponseDisplay(context, reply);
+                            },
+                          ),
                         Center(
                           child: GestureDetector(
                             onTap: () {

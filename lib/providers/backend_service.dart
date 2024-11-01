@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:quiputalk/utils/predefined_voices.dart';
 
 class BackendService {
   // Uso de Singleton para BackendService
@@ -40,6 +41,39 @@ class BackendService {
       }
     } catch (e) {
       print('Error al iniciar sesión: $e');
+      return null;
+    }
+  }
+
+  /// Método para obtener sugerencias de respuesta
+  Future<List<String>?> getSuggestReplies({
+    required String userMessage,
+    required String style,
+    required String sessionId,
+    required String userResponse,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/get_suggested_replies/'),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "user_message": userMessage,
+          "style": style,
+          "session_id": sessionId,
+          "user_response": userResponse,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        var data = json.decode(response.body);
+        String suggestedRepliesString = data['suggested_replies'];
+        return suggestedRepliesString.split('\n').map((reply) => reply.trim()).toList();
+      } else {
+        print('Error al obtener sugerencias de respuesta: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Error al obtener sugerencias de respuesta: $e');
       return null;
     }
   }
