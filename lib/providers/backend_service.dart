@@ -51,8 +51,7 @@ class BackendService {
   Future<List<String>?> getSuggestReplies({
     required String userMessage,
     required String style,
-    required String sessionId,
-    required String userResponse,
+    required String sessionId
   }) async {
     try {
       final response = await http.post(
@@ -61,8 +60,7 @@ class BackendService {
         body: json.encode({
           "user_message": userMessage,
           "style": style,
-          "session_id": sessionId,
-          "user_response": userResponse,
+          "session_id": sessionId
         }),
       );
 
@@ -82,4 +80,33 @@ class BackendService {
       return null;
     }
   }
+
+  Future<bool> sendUserResponse({
+    required String userResponse,
+    required String sessionId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/send_user_response/'),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "user_response": userResponse,
+          "session_id": sessionId,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        print('Error al enviar la respuesta del usuario: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('Error al enviar la respuesta del usuario: $e');
+      return false;
+    }
+  }
+
+
+
 }

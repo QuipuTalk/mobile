@@ -72,8 +72,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
 
     // Agregar el mensaje inicial al historial de mensajes
     if (widget.initialMessage.isNotEmpty) {
-      _conversationService.addMessage(widget.initialMessage, MessageType.signLanguage);
-      _getSuggestedReplies(widget.initialMessage, "");
+      _addMessageAndGetSuggestedReplies(widget.initialMessage, MessageType.signLanguage);
     }
 
     // Programa el scroll al final después de que el widget se construya
@@ -97,14 +96,23 @@ class _AnswerScreenState extends State<AnswerScreen> {
 
   void _addMessage(String text, MessageType type) {
     _conversationService.addMessage(text, type);
-    _getSuggestedReplies(text, "");
     // Programa el scroll al final después de que se actualice el estado
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
   }
 
-  Future<void> _getSuggestedReplies(String userMessage, String userResponse) async {
+  void _addMessageAndGetSuggestedReplies(String text, MessageType type) {
+    _addMessage(text, type);
+    _getSuggestedReplies(text);
+  }
+
+  void _addMessageAndHandleUserResponse(String text, MessageType type){
+    _addMessage(text, type);
+    _handleUserResponse(text);
+  }
+
+  Future<void> _getSuggestedReplies(String userMessage) async {
 
     setState(() {
       isLoadingReplies=true;
@@ -116,7 +124,6 @@ class _AnswerScreenState extends State<AnswerScreen> {
       userMessage: userMessage,
       style: communicationStyle,
       sessionId: widget.sessionId,
-      userResponse: userResponse,
     );
 
     if (replies != null) {
@@ -126,6 +133,29 @@ class _AnswerScreenState extends State<AnswerScreen> {
       });
     } else {
         isLoadingReplies = false; //ocultar indicador si hay un error
+    }
+  }
+
+  void _handleUserResponse(String responseText) async {
+    _conversationService.addMessage(responseText, MessageType.user);
+
+    // Enviar la respuesta del usuario al backend
+    bool success = await _backendService.sendUserResponse(
+      userResponse: responseText,
+      sessionId: widget.sessionId,
+    );
+
+    if (success) {
+      // Navegar a la siguiente pantalla o actualizar la UI según sea necesario
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ResponseDisplayScreen(response: responseText),
+        ),
+      );
+    } else {
+      // Manejar el error según sea necesario
+      print("Error al enviar la respuesta del usuario al backend");
     }
   }
 
@@ -287,8 +317,9 @@ class _AnswerScreenState extends State<AnswerScreen> {
                           : () {
                         if (_responseController.text.isNotEmpty) {
                           setState(() {
-                            _addMessage(_responseController.text, MessageType.user);
+
                             String responseText = _responseController.text;
+                            _addMessageAndHandleUserResponse(responseText, MessageType.user);
                             _responseController.clear();
                             isCustomizingResponse = false;
 
@@ -360,7 +391,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
                             OptionWidget(
                               text: reply,
                               onTap: () {
-                                _conversationService.addMessage(reply, MessageType.user);
+                                _addMessageAndHandleUserResponse(reply, MessageType.user);
                                 ConversationNavigator.navigateToResponseDisplay(context, reply);
                               },
                             ),
