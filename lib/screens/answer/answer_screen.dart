@@ -52,6 +52,8 @@ class _AnswerScreenState extends State<AnswerScreen> {
   String? selectedVoiceName;
   final TextEditingController _responseController = TextEditingController();
   List<String> suggestedReplies = [];
+  bool isLoadingReplies = false;
+  String communicationStyle = 'neutral';
 
 
   // We call voices
@@ -62,6 +64,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
   void initState() {
     super.initState();
     _loadVoicePreference();
+    _loadCommunicationStyle();
     flutterTts.setCompletionHandler(() => onTtsComplete());
 
     // Log para verificar si sessionId se pasó correctamente
@@ -102,10 +105,16 @@ class _AnswerScreenState extends State<AnswerScreen> {
   }
 
   Future<void> _getSuggestedReplies(String userMessage, String userResponse) async {
-    String style = "formal"; // Aquí puedes cambiar el estilo si es necesario
+
+    setState(() {
+      isLoadingReplies=true;
+    });
+
+    await _loadCommunicationStyle(); // Asegurarse de tener el estilo de comunicación actualizado
+
     List<String>? replies = await _backendService.getSuggestReplies(
       userMessage: userMessage,
-      style: style,
+      style: communicationStyle,
       sessionId: widget.sessionId,
       userResponse: userResponse,
     );
@@ -113,10 +122,19 @@ class _AnswerScreenState extends State<AnswerScreen> {
     if (replies != null) {
       setState(() {
         suggestedReplies = replies;
+        isLoadingReplies=false;
       });
+    } else {
+        isLoadingReplies = false; //ocultar indicador si hay un error
     }
   }
 
+  Future<void> _loadCommunicationStyle() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      communicationStyle = prefs.getString('communication_style') ?? 'neutral';
+    });
+  }
 
   void onTtsComplete() {
     setState(() {
@@ -331,22 +349,23 @@ class _AnswerScreenState extends State<AnswerScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-/*                        OptionWidget(
-                          text: 'Sí, encontré la lección, pero me costó entender algunos puntos. ¿Podrías aclararlos?',
-                          onTap: () {
-                            String response = 'Sí, encontré la lección, pero me costó entender algunos puntos. ¿Podrías aclararlos?';
-                            _conversationService.addMessage(response, MessageType.user);
-                            ConversationNavigator.navigateToResponseDisplay(context, response);
-                          },
-                        ),*/
-                        for (var reply in suggestedReplies)
-                          OptionWidget(
-                            text: reply,
-                            onTap: () {
-                              _conversationService.addMessage(reply, MessageType.user);
-                              ConversationNavigator.navigateToResponseDisplay(context, reply);
-                            },
-                          ),
+                        if(isLoadingReplies)
+                          const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                            ),
+                          )
+                        else
+                          for (var reply in suggestedReplies) ...[
+                            OptionWidget(
+                              text: reply,
+                              onTap: () {
+                                _conversationService.addMessage(reply, MessageType.user);
+                                ConversationNavigator.navigateToResponseDisplay(context, reply);
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                          ],
                         Center(
                           child: GestureDetector(
                             onTap: () {

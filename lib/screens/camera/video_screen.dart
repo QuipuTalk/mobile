@@ -239,7 +239,7 @@ class _VideoScreenState extends State<VideoScreen> {
       if (sessionId != null) {
         // Aquí iría la traducción real del video
         String translatedMessage =
-            "Hola! Necesito de tu ayuda";
+            "Mi nombre es Julio, ayuda con un trámite";
 
         // Navegar a AnswerScreen pasando el session_id
         Navigator.push(

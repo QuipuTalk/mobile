@@ -29,7 +29,7 @@ class ResponseDisplayScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF2D4554),
-        title: const Text('Respuesta Personalizada'),
+        title: const Text('Respuesta Personalizada',style: TextStyle(color: Colors.white),),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings, color: Colors.white),

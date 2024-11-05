@@ -14,9 +14,9 @@ class _CommunicationStyleSettingsScreenState extends State<CommunicationStyleSet
   bool isLoading = true;
 
   final List<String> styles = [
-    'Neutral',
-    'Formal',
-    'Informal',
+    'neutral',
+    'formal',
+    'informal',
   ];
 
   @override
@@ -27,8 +27,10 @@ class _CommunicationStyleSettingsScreenState extends State<CommunicationStyleSet
 
   Future<void> _loadStylePreference() async {
     final prefs = await SharedPreferences.getInstance();
+    // Asegúrate de que el valor sea consistente con los elementos en la lista `styles`
+    String? savedStyle = prefs.getString('communication_style')?.toLowerCase();
     setState(() {
-      selectedStyle = prefs.getString('communication_style') ?? styles[0];
+      selectedStyle = styles.contains(savedStyle) ? savedStyle : styles[0];
       isLoading = false;
     });
   }

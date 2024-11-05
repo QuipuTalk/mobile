@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:quiputalk/utils/predefined_voices.dart';
@@ -9,7 +11,7 @@ class BackendService {
   BackendService._internal();
 
   // Base URL del backend
-  final String baseUrl = 'http://10.0.2.2:8000'; // Cambia a tu IP local si estás en un dispositivo físico
+  final String baseUrl = 'https://backendquipu.vercel.app'; // Cambia a tu IP local si estás en un dispositivo físico
 
   /// Método para probar la conexión con el backend
   Future<void> testBackendConnection() async {
@@ -64,8 +66,11 @@ class BackendService {
         }),
       );
 
+      // Ejemplo en el método getSuggestReplies del BackendService
       if (response.statusCode == 200) {
-        var data = json.decode(response.body);
+        Uint8List responseBytes = response.bodyBytes;
+        String utf8Body = utf8.decode(responseBytes);
+        var data = json.decode(utf8Body);
         String suggestedRepliesString = data['suggested_replies'];
         return suggestedRepliesString.split('\n').map((reply) => reply.trim()).toList();
       } else {
