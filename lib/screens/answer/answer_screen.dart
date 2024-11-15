@@ -396,7 +396,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
                             ),
                             const SizedBox(height: 8),
                           ],
-                        Center(
+/*                        Center(
                           child: GestureDetector(
                             onTap: () {
                               // Acción para "Volver a generar"
@@ -411,7 +411,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
                               ),
                             ),
                           ),
-                        ),
+                        ),*/
                       ],
                     ),
                   ),

@@ -288,8 +288,11 @@ class _VideoScreenState extends State<VideoScreen> {
         sessionService.setSessionId(sessionId!); // Almacenar el nuevo sessionId en el SessionService
       }
 
-      // Preparar la solicitud HTTP para el primer backend (traducción del video)
-      var request = http.MultipartRequest('POST', Uri.parse('http://192.168.1.3:5001/predict'));
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://sign-language-api-599414446323.southamerica-east1.run.app/predict'),
+      );
+
 
       // Variable para el archivo de video
       File? videoFile;
@@ -325,7 +328,10 @@ class _VideoScreenState extends State<VideoScreen> {
         var jsonData = json.decode(responseData);
 
         // Extraer el texto traducido
-        String translatedMessage = jsonData['predicted_sentence'];
+        String translatedMessage = jsonData['prediction'];
+
+        // Imprimir el mensaje traducido en la consola
+        print('Translated Message: $translatedMessage');
 
         // Ahora enviar el texto traducido al segundo backend para corrección
         String correctedMessage = await _getCorrectedText(translatedMessage);
