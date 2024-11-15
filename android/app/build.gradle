@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.quiputalk"
-        minSdk = 33 // Cambia de `flutter.minSdkVersion` a `29`
+        minSdk = 31 // Cambia de `flutter.minSdkVersion` a `29`
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

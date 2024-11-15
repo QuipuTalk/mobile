@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:quiputalk/screens/camera/video_screen.dart';
 
@@ -30,6 +31,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
 
   Future<void> _initializeCamera() async {
     await CameraControllerService.initializeCamera();
+    //await _cameraController?.lockCaptureOrientation(DeviceOrientation.portraitUp);
+
     if (mounted) setState(() {});
   }
 
@@ -159,6 +162,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   }
 
   // En el método _stopRecording, actualiza la navegación:
+  /**
   Future<void> _stopRecording() async {
     if (!_cameraController!.value.isRecordingVideo) return;
 
@@ -176,6 +180,34 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       print('Error stopping video recording: $e');
     }
   }
+   **/
+  Future<void> _stopRecording() async {
+    if (!_cameraController!.value.isRecordingVideo) return;
+
+    try {
+      XFile videoFile = await _cameraController!.stopVideoRecording();
+      setState(() => _isRecording = false);
+      _stopTimer();
+
+      final tempDir = await getTemporaryDirectory();
+      final tempPath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4';
+      await File(videoFile.path).copy(tempPath);
+
+      // Navegar a VideoScreen y pasar la ruta del video grabado
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => VideoScreen(
+            videoPath: tempPath,
+            useAssetVideo: false, // Indica que no se debe usar el video de assets
+          ),
+        ),
+      );
+    } catch (e) {
+      print('Error stopping video recording: $e');
+    }
+  }
+
 
   void _startTimer() {
     _recordingDuration = 0;

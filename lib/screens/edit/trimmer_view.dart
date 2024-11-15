@@ -167,7 +167,7 @@ class _TrimmerViewState extends State<TrimmerView> {
                       : () async {
                     await _saveVideo();
                   },
-                  child: Text("SAVE"),
+                  child: Text("Guardar"),
                 ),
                 SizedBox(height: 20), // Espacio para separar del borde inferior
               ],

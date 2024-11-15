@@ -47,6 +47,7 @@ class _VideoScreenState extends State<VideoScreen> {
     _currentVideoPath = widget.videoPath;
     _initializeVideoPlayer();
   }
+  /**
 
   void _initializeVideoPlayer() {
     if (widget.useAssetVideo) {
@@ -56,6 +57,13 @@ class _VideoScreenState extends State<VideoScreen> {
       // Cargar video desde _currentVideoPath
       _controller = VideoPlayerController.file(File(_currentVideoPath));
     }
+    _initializeVideoPlayerFuture = _controller.initialize();
+    _controller.setLooping(false);
+  }
+**/
+  void _initializeVideoPlayer() {
+    // Cargar el video desde la ruta proporcionada
+    _controller = VideoPlayerController.file(File(_currentVideoPath));
     _initializeVideoPlayerFuture = _controller.initialize();
     _controller.setLooping(false);
   }
@@ -168,7 +176,7 @@ class _VideoScreenState extends State<VideoScreen> {
     }
   }
 
-
+//aqui
   Widget _futureBuilder(BuildContext context) {
     return FutureBuilder(
       future: _initializeVideoPlayerFuture,
@@ -177,7 +185,10 @@ class _VideoScreenState extends State<VideoScreen> {
           return Container(
             child: AspectRatio(
               aspectRatio: _controller.value.aspectRatio,
-              child: VideoPlayer(_controller),
+              child: RotatedBox(
+                quarterTurns: 1, // Cambia este valor si necesitas más ajustes
+                child: VideoPlayer(_controller),
+              ),
             ),
           );
         } else {
@@ -311,6 +322,7 @@ class _VideoScreenState extends State<VideoScreen> {
       }
 
       // Agregar el archivo de video a la solicitud
+      /**
       request.files.add(
         await http.MultipartFile.fromPath(
           'video',
@@ -318,7 +330,15 @@ class _VideoScreenState extends State<VideoScreen> {
           contentType: MediaType('video', 'mp4'),
         ),
       );
-
+      **/
+      // Agregar el archivo de video a la solicitud
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'video',
+          _currentVideoPath, // Usar la ruta del video grabado
+          contentType: MediaType('video', 'mp4'),
+        ),
+      );
       // Enviar la solicitud al primer backend
       var response = await request.send();
 
@@ -397,7 +417,7 @@ class _VideoScreenState extends State<VideoScreen> {
     }
   }
 
-
+/**
   void _navigateToTrimmer() async {
     var status = await Permission.videos.request();
     if (status.isGranted) {
@@ -420,6 +440,25 @@ class _VideoScreenState extends State<VideoScreen> {
       );
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
+  }**/
+  void _navigateToTrimmer() async {
+    // Navega directamente a TrimmerView sin verificar permisos
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (context) => TrimmerView(File(_currentVideoPath)),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        _currentVideoPath = result;
+        _controller.dispose();
+        _initializeVideoPlayer();
+      });
+    }
   }
+
+
+
 
 }
