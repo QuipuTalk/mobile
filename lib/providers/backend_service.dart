@@ -13,6 +13,8 @@ class BackendService {
   // Base URL del backend
   final String baseUrl = 'https://backendquipu.vercel.app'; // Cambia a tu IP local si estás en un dispositivo físico
 
+  //final String localUrl = 'https://backendquipu.vercel.app';
+
   /// Método para probar la conexión con el backend
   Future<void> testBackendConnection() async {
     try {

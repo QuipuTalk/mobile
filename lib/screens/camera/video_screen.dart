@@ -11,9 +11,26 @@ import '../../routes/conversation_navigator.dart';
 import '../../providers/backend_service.dart';
 import '../answer/answer_screen.dart';
 
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'dart:convert';
+
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:path_provider/path_provider.dart';
+// Otras importaciones...
+
+
+
 class VideoScreen extends StatefulWidget {
   final String videoPath;
-  const VideoScreen({super.key, required this.videoPath});
+  final bool useAssetVideo; // Añadido para decidir qué video usar
+
+  const VideoScreen({
+    Key? key,
+    required this.videoPath,
+    this.useAssetVideo = true, // Por defecto es false
+  }) : super(key: key);
+
   @override
   _VideoScreenState createState() => _VideoScreenState();
 }
@@ -32,7 +49,13 @@ class _VideoScreenState extends State<VideoScreen> {
   }
 
   void _initializeVideoPlayer() {
-    _controller = VideoPlayerController.file(File(_currentVideoPath));
+    if (widget.useAssetVideo) {
+      // Cargar video desde assets
+      _controller = VideoPlayerController.asset('assets/videos/sample_video.mp4');
+    } else {
+      // Cargar video desde _currentVideoPath
+      _controller = VideoPlayerController.file(File(_currentVideoPath));
+    }
     _initializeVideoPlayerFuture = _controller.initialize();
     _controller.setLooping(false);
   }
@@ -62,7 +85,7 @@ class _VideoScreenState extends State<VideoScreen> {
               Expanded(
                 flex: 10,
                 child: RotatedBox(
-                  quarterTurns: 1,
+                  quarterTurns: 4,
                   child: _futureBuilder(context),
                 ),
               ),
@@ -113,6 +136,38 @@ class _VideoScreenState extends State<VideoScreen> {
       ),
     );
   }
+
+  Future<String> _getCorrectedText(String text) async {
+    try {
+      final url = Uri.parse('https://backendquipu.vercel.app/get_text_correction/');
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"text": text}),
+      );
+
+      if (response.statusCode == 200) {
+        var jsonData = json.decode(utf8.decode(response.bodyBytes));
+
+        // Extraer el texto corregido
+        String correctedText = jsonData['corrected_text'];
+
+        // Si el texto corregido comienza con 'Respuesta: "', lo eliminamos
+        if (correctedText.startsWith('Respuesta: "')) {
+          correctedText = correctedText.substring(11, correctedText.length - 1); // Eliminar 'Respuesta: "' y el último '"'
+        }
+
+        return correctedText;
+      } else {
+        print('Error al obtener el texto corregido: ${response.statusCode}');
+        return text; // Devolver el texto original si hay un error
+      }
+    } catch (e) {
+      print('Exception al obtener el texto corregido: $e');
+      return text; // Devolver el texto original si hay una excepción
+    }
+  }
+
 
   Widget _futureBuilder(BuildContext context) {
     return FutureBuilder(
@@ -192,6 +247,7 @@ class _VideoScreenState extends State<VideoScreen> {
   }
 
   Future<void> _showLoadingDialogAndNavigate() async {
+    // Mostrar diálogo de carga
     showDialog(
       barrierDismissible: false,
       context: context,
@@ -221,42 +277,120 @@ class _VideoScreenState extends State<VideoScreen> {
       },
     );
 
+    try {
+      final sessionService = Provider.of<SessionService>(context, listen: false);
+      // Verificar si ya existe un sessionId activo
+      String? sessionId = sessionService.sessionId;
 
-    final sessionService = Provider.of<SessionService>(context, listen: false);
-    // Verificar si ya existe un sessionId activo
-    String? sessionId = sessionService.sessionId;
+      // Si no existe un sessionId, iniciar una nueva sesión
+      if (sessionId == null) {
+        sessionId = await _backendService.startSession();
+        sessionService.setSessionId(sessionId!); // Almacenar el nuevo sessionId en el SessionService
+      }
 
-    // Si no existe un sessionId, iniciar una nueva sesión
-    if (sessionId == null) {
-      sessionId = await _backendService.startSession();
-      sessionService.setSessionId(sessionId!); // Almacenar el nuevo sessionId en el SessionService
-    }
+      // Preparar la solicitud HTTP para el primer backend (traducción del video)
+      var request = http.MultipartRequest('POST', Uri.parse('http://192.168.1.3:5001/predict'));
 
-    // Cerrar el diálogo después de un tiempo simulado de procesamiento
-    Future.delayed(const Duration(seconds: 3), () {
-      Navigator.of(context).pop(); // Cierra el diálogo
+      // Variable para el archivo de video
+      File? videoFile;
 
-      if (sessionId != null) {
-        // Aquí iría la traducción real del video
-        String translatedMessage =
-            "Mi nombre es Julio, ayuda con un trámite";
-
-        // Navegar a AnswerScreen pasando el session_id
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AnswerScreen(
-              initialMessage: translatedMessage,
-              sessionId: sessionId!,
-            ),
-          ),
+      if (widget.useAssetVideo) {
+        // Leer el video de los assets y escribirlo en un archivo temporal
+        final byteData = await rootBundle.load('assets/videos/sample_video.mp4');
+        final tempDir = await getTemporaryDirectory();
+        final tempVideoPath = '${tempDir.path}/sample_video.mp4';
+        videoFile = await File(tempVideoPath).writeAsBytes(
+          byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
         );
       } else {
-        // Manejar el caso de error si no se pudo obtener el session_id
-        print("Error al iniciar una nueva sesión");
+        // Usar el video de _currentVideoPath
+        videoFile = File(_currentVideoPath);
       }
-    });
+
+      // Agregar el archivo de video a la solicitud
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'video',
+          videoFile.path,
+          contentType: MediaType('video', 'mp4'),
+        ),
+      );
+
+      // Enviar la solicitud al primer backend
+      var response = await request.send();
+
+      if (response.statusCode == 200) {
+        // Obtener los datos de la respuesta
+        var responseData = await response.stream.bytesToString();
+        var jsonData = json.decode(responseData);
+
+        // Extraer el texto traducido
+        String translatedMessage = jsonData['predicted_sentence'];
+
+        // Ahora enviar el texto traducido al segundo backend para corrección
+        String correctedMessage = await _getCorrectedText(translatedMessage);
+
+        // Cerrar el diálogo de carga
+        if (mounted) {
+          Navigator.of(context).pop(); // Cierra el diálogo de carga
+
+          // Navegar a AnswerScreen pasando el mensaje corregido y sessionId
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AnswerScreen(
+                initialMessage: correctedMessage,
+                sessionId: sessionId!,
+              ),
+            ),
+          );
+        }
+      } else {
+        // Manejar errores
+        print('Error: ${response.statusCode}');
+        // Cerrar el diálogo de carga
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+        // Mostrar mensaje de error
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('Error'),
+            content: Text('Error al procesar el video. Por favor, inténtalo de nuevo.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('Aceptar'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      // Manejar excepciones
+      print('Exception: $e');
+      // Cerrar el diálogo de carga
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+      // Mostrar mensaje de error
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Error'),
+          content: Text('Error al procesar el video. Por favor, inténtalo de nuevo.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Aceptar'),
+            ),
+          ],
+        ),
+      );
+    }
   }
+
 
   void _navigateToTrimmer() async {
     var status = await Permission.videos.request();

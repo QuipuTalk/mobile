@@ -14,7 +14,6 @@ import '../../providers/backend_service.dart';
 import '../../providers/conversation_service.dart';
 import '../../routes/conversation_navigator.dart';
 
-
 class AnswerScreen extends StatefulWidget {
 
   final String initialMessage;
