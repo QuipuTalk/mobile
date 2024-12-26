@@ -7,22 +7,22 @@ plugins {
 
 android {
     namespace = "com.example.quiputalk"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 34
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17  // Actualizado a 17
+        targetCompatibility = JavaVersion.VERSION_17  // Actualizado a 17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
+        jvmTarget = '17'  // Actualizado a 17
     }
 
     defaultConfig {
         applicationId = "com.example.quiputalk"
         minSdk = 31 // Cambia de `flutter.minSdkVersion` a `29`
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
