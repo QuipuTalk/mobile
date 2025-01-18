@@ -15,7 +15,6 @@ import '../../providers/conversation_service.dart';
 import '../../routes/conversation_navigator.dart';
 
 class AnswerScreen extends StatefulWidget {
-
   final String initialMessage;
   final String sessionId;
 
@@ -25,14 +24,11 @@ class AnswerScreen extends StatefulWidget {
     required this.sessionId,
   }) : super(key: key);
 
-
   @override
   State<AnswerScreen> createState() => _AnswerScreenState();
 }
 
 class _AnswerScreenState extends State<AnswerScreen> {
-
-
   //Services
   final ConversationService _conversationService = ConversationService();
   final BackendService _backendService = BackendService();
@@ -53,11 +49,10 @@ class _AnswerScreenState extends State<AnswerScreen> {
   List<String> suggestedReplies = [];
   bool isLoadingReplies = false;
   String communicationStyle = 'neutral';
+  bool isRecordingCancelled = false;
 
-
-  // We call voices
+  // Voces predefinidas
   final Map<String, Map<String, String>> predefinedVoices = voices;
-
 
   @override
   void initState() {
@@ -71,7 +66,10 @@ class _AnswerScreenState extends State<AnswerScreen> {
 
     // Agregar el mensaje inicial al historial de mensajes
     if (widget.initialMessage.isNotEmpty) {
-      _addMessageAndGetSuggestedReplies(widget.initialMessage, MessageType.signLanguage);
+      _addMessageAndGetSuggestedReplies(
+        widget.initialMessage,
+        MessageType.signLanguage,
+      );
     }
 
     // Programa el scroll al final después de que el widget se construya
@@ -106,15 +104,14 @@ class _AnswerScreenState extends State<AnswerScreen> {
     _getSuggestedReplies(text);
   }
 
-  void _addMessageAndHandleUserResponse(String text, MessageType type){
+  void _addMessageAndHandleUserResponse(String text, MessageType type) {
     _addMessage(text, type);
     _handleUserResponse(text);
   }
 
   Future<void> _getSuggestedReplies(String userMessage) async {
-
     setState(() {
-      isLoadingReplies=true;
+      isLoadingReplies = true;
     });
 
     await _loadCommunicationStyle(); // Asegurarse de tener el estilo de comunicación actualizado
@@ -128,10 +125,10 @@ class _AnswerScreenState extends State<AnswerScreen> {
     if (replies != null) {
       setState(() {
         suggestedReplies = replies;
-        isLoadingReplies=false;
+        isLoadingReplies = false;
       });
     } else {
-        isLoadingReplies = false; //ocultar indicador si hay un error
+      isLoadingReplies = false; // ocultar indicador si hay un error
     }
   }
 
@@ -181,7 +178,6 @@ class _AnswerScreenState extends State<AnswerScreen> {
 
   void _navigateToSettings() async {
     flutterTts.stop();
-
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const SettingsScreen()),
@@ -212,7 +208,8 @@ class _AnswerScreenState extends State<AnswerScreen> {
 
     try {
       // Configurar la voz según la preferencia guardada
-      String locale = predefinedVoices[selectedVoiceName]?['locale'] ?? 'es-ES';
+      String locale =
+          predefinedVoices[selectedVoiceName]?['locale'] ?? 'es-ES';
 
       await flutterTts.setLanguage(locale);
       await flutterTts.setVoice({
@@ -238,7 +235,10 @@ class _AnswerScreenState extends State<AnswerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Conversación',style: TextStyle(color: Colors.white),),
+        title: const Text(
+          'Conversación',
+          style: TextStyle(color: Colors.white),
+        ),
         iconTheme: const IconThemeData(
           color: Colors.white,
         ),
@@ -247,7 +247,6 @@ class _AnswerScreenState extends State<AnswerScreen> {
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () async {
-              // Navegar a la pantalla de ajustes y recargar la preferencia al volver
               _navigateToSettings();
             },
           ),
@@ -293,7 +292,10 @@ class _AnswerScreenState extends State<AnswerScreen> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
                       style: const TextStyle(color: Colors.white),
                       onChanged: (text) {
@@ -303,32 +305,39 @@ class _AnswerScreenState extends State<AnswerScreen> {
                   ),
                   const SizedBox(width: 10),
                   Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF7A8892),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF7A8892),
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
                       icon: _responseController.text.isEmpty
-                          ? Icon(isListening ? Icons.mic_off : Icons.mic, color: const Color(0xFFFFFFFF))
+                          ? Icon(
+                        isListening ? Icons.mic_off : Icons.mic,
+                        color: const Color(0xFFFFFFFF),
+                      )
                           : const Icon(Icons.send, color: Color(0xFFFFFFFF)),
                       onPressed: _responseController.text.isEmpty
                           ? _listen
                           : () {
                         if (_responseController.text.isNotEmpty) {
                           setState(() {
-
                             String responseText = _responseController.text;
-                            _addMessageAndHandleUserResponse(responseText, MessageType.user);
+                            _addMessageAndHandleUserResponse(
+                              responseText,
+                              MessageType.user,
+                            );
                             _responseController.clear();
                             isCustomizingResponse = false;
 
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => ResponseDisplayScreen(response: responseText),
+                                builder: (context) =>
+                                    ResponseDisplayScreen(
+                                      response: responseText,
+                                    ),
                               ),
                             );
-
                           });
                         }
                       },
@@ -375,11 +384,11 @@ class _AnswerScreenState extends State<AnswerScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white
+                            color: Colors.white,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        if(isLoadingReplies)
+                        if (isLoadingReplies)
                           const Center(
                             child: CircularProgressIndicator(
                               color: Colors.white,
@@ -390,28 +399,18 @@ class _AnswerScreenState extends State<AnswerScreen> {
                             OptionWidget(
                               text: reply,
                               onTap: () {
-                                _addMessageAndHandleUserResponse(reply, MessageType.user);
-                                ConversationNavigator.navigateToResponseDisplay(context, reply);
+                                _addMessageAndHandleUserResponse(
+                                  reply,
+                                  MessageType.user,
+                                );
+                                ConversationNavigator.navigateToResponseDisplay(
+                                  context,
+                                  reply,
+                                );
                               },
                             ),
                             const SizedBox(height: 8),
                           ],
-/*                        Center(
-                          child: GestureDetector(
-                            onTap: () {
-                              // Acción para "Volver a generar"
-                            },
-                            child: const Text(
-                              'Volver a generar',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                decoration: TextDecoration.underline,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),*/
                       ],
                     ),
                   ),
@@ -430,7 +429,10 @@ class _AnswerScreenState extends State<AnswerScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          child: const Text('Volver a grabar', style: TextStyle(color: Colors.white)),
+                          child: const Text(
+                            'Volver a grabar',
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -448,8 +450,10 @@ class _AnswerScreenState extends State<AnswerScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          child: const Text('Personalizar respuesta',
-                              style: TextStyle(color: Colors.white)),
+                          child: const Text(
+                            'Personalizar respuesta',
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ),
                     ],
@@ -462,6 +466,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
     );
   }
 
+  /// MÉTODO CON AJUSTES PARA EVITAR PROBLEMAS AL CANCELAR
   void _listen() async {
     if (!isListening) {
       bool available = await _speech.initialize(
@@ -475,40 +480,88 @@ class _AnswerScreenState extends State<AnswerScreen> {
         }),
       );
       if (available) {
-        setState(() => isListening = true);
+        setState(() {
+          isListening = true;
+          isRecordingCancelled = false; // Reinicia el indicador
+        });
+
+        // Muestra el diálogo que permanece abierto hasta ACEPTAR o CANCELAR
         showDialog(
           context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 20),
-                const Text("Escuchando...", style: TextStyle(fontSize: 16)),
-                const SizedBox(height: 10),
-                ValueListenableBuilder(
-                  valueListenable: _responseController,
-                  builder: (context, value, child) {
-                    return Text(
-                      _responseController.text,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    );
+          barrierDismissible: false, // Evitar que se cierre al tocar fuera del diálogo
+          builder: (context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 20),
+                  const Text(
+                    "Escuchando...",
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 10),
+                  ValueListenableBuilder(
+                    valueListenable: _responseController,
+                    builder: (context, value, child) {
+                      return Text(
+                        _responseController.text,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                // Botón Aceptar
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      isListening = false;
+                    });
+                    _speech.stop(); // Detiene el reconocimiento
+                    Navigator.of(context).pop(); // Cierra el pop-up
                   },
+                  child: const Text(
+                    "Aceptar",
+                    style: TextStyle(color: Colors.blue),
+                  ),
+                ),
+                // Botón Cancelar
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      isListening = false;
+                      isRecordingCancelled = true; // Indica que se canceló
+                      _responseController.clear(); // Limpia el texto
+                    });
+                    _speech.stop(); // Detener el reconocimiento
+                    Navigator.of(context).pop(); // Cerrar el pop-up
+                  },
+                  child: const Text(
+                    "Cancelar",
+                    style: TextStyle(color: Colors.red),
+                  ),
                 ),
               ],
-            ),
-          ),
+            );
+          },
         );
+
+        // Aquí se inicia la escucha y se va capturando la voz
         _speech.listen(
           localeId: 'es_ES',
           onResult: (val) => setState(() {
-            _responseController.text = val.recognizedWords;
-            if (val.hasConfidenceRating && val.confidence > 0) {
-              Navigator.of(context).pop();
+            if (!isRecordingCancelled) {
+              _responseController.text = val.recognizedWords;
+              // Antes se cerraba el pop-up de inmediato al reconocer algo;
+              // lo removimos para que no regrese a la pantalla anterior
             }
           }),
         );
@@ -519,5 +572,3 @@ class _AnswerScreenState extends State<AnswerScreen> {
     }
   }
 }
-
-
