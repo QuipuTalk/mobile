@@ -1,7 +1,8 @@
 // widgets/chat_message_widget.dart
-
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // <-- IMPORTANTE
 import 'chat_message.dart';
+import 'package:quiputalk/providers/font_size_provider.dart'; // <-- IMPORTA TU PROVIDER
 
 class ChatMessageWidget extends StatelessWidget {
   final ChatMessage message;
@@ -64,12 +65,16 @@ class ChatMessageWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 1. Obtén el fontSize del provider
+    final fontSize = Provider.of<FontSizeProvider>(context).fontSize;
+
     bool isUserMessage = message.type == MessageType.user;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16.0),
       child: Row(
-        mainAxisAlignment: isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+        isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
           if (!isUserMessage && message.type == MessageType.signLanguage)
             const Padding(
@@ -86,12 +91,15 @@ class ChatMessageWidget extends StatelessWidget {
               padding: const EdgeInsets.all(16.0),
               decoration: _getMessageDecoration(message.type),
               child: Column(
-                crossAxisAlignment: isUserMessage ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                crossAxisAlignment: isUserMessage
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
                 children: [
+                  // 2. Aplica fontSize al texto
                   Text(
                     message.text,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: fontSize,
                       color: isUserMessage ? Colors.white : Colors.black87,
                     ),
                   ),

@@ -1,8 +1,10 @@
-  import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:quiputalk/providers/conversation_service.dart';
 import 'package:quiputalk/providers/session_service.dart';
-import 'package:quiputalk/screens/splash_screen.dart'; // Asegúrate de importar tu SplashScreen
+import 'package:quiputalk/screens/splash_screen.dart';
+// Importa tu nuevo provider
 import 'package:provider/provider.dart';
+import 'package:quiputalk/providers/font_size_provider.dart';
 
 void main() {
   runApp(
@@ -10,8 +12,9 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => SessionService()),
         ChangeNotifierProvider(create: (_) => ConversationService()),
+        ChangeNotifierProvider(create: (_) => FontSizeProvider()),
       ],
-      child: MyApp(),
+      child: const MyApp(),
     ),
   );
 }
@@ -29,7 +32,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: SplashScreen(),
-      debugShowCheckedModeBanner: false, // Esta línea desactiva el banner de debug
+      debugShowCheckedModeBanner: false,
     );
   }
 }

@@ -1,15 +1,22 @@
-// widgets/option_widget.dart
-
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:quiputalk/providers/font_size_provider.dart';
 
 class OptionWidget extends StatelessWidget {
   final String text;
   final Function() onTap;
 
-  const OptionWidget({Key? key, required this.text, required this.onTap}) : super(key: key);
+  const OptionWidget({
+    Key? key,
+    required this.text,
+    required this.onTap,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    // 1. Obtenemos el tamaño de fuente global
+    final fontSize = Provider.of<FontSizeProvider>(context).fontSize;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -28,7 +35,11 @@ class OptionWidget extends StatelessWidget {
         ),
         child: Text(
           text,
-          style: const TextStyle(fontSize: 14, color: Colors.white),
+          // 2. En lugar de fontSize fijo, usamos el del Provider
+          style: TextStyle(
+            fontSize: fontSize, // o fontSize - 2, o como quieras ajustarlo
+            color: Colors.white,
+          ),
         ),
       ),
     );

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+// Importamos Provider y nuestro FontSizeProvider
+import 'package:provider/provider.dart';
+import 'package:quiputalk/providers/font_size_provider.dart';
+
 import 'package:quiputalk/providers/camera_controller_service.dart';
 import 'package:quiputalk/routes/conversation_navigator.dart';
 import 'package:quiputalk/screens/camera/camera_screen.dart';
@@ -8,7 +12,6 @@ import 'package:flutter/services.dart';
 import 'package:quiputalk/utils/hexadecimal_color.dart';
 import 'package:quiputalk/screens/settings/settings_screen.dart';
 import 'package:quiputalk/utils/rounded_card.dart';
-
 import '../providers/backend_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -116,126 +119,160 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => const CameraScreen(),
-        settings: RouteSettings(name: 'CameraScreen'),
+        settings: const RouteSettings(name: 'CameraScreen'),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Obtenemos el tamaño de la pantalla
+    // 1. Obtenemos el tamaño de pantalla y el fontSize del provider
     final size = MediaQuery.of(context).size;
+    final fontSizeProvider = Provider.of<FontSizeProvider>(context, listen: true);
+
+    // 2. Si quieres combinar tu "responsivo" + tamaño ajustable:
+    //    Multiplicamos lo que tenías por (fontSize / 16)
+    final double baseTitleSize = size.width * 0.09;
+    final double scaledTitleSize = baseTitleSize * (fontSizeProvider.fontSize / 16.0);
+
+    final double baseSubTitleSize = size.width * 0.06;
+    final double scaledSubTitleSize = baseSubTitleSize * (fontSizeProvider.fontSize / 16.0);
+
+    // Para los botones, puedes usarlo directamente o combinar
+    // con la parte responsiva. Lo mantengo simple por ahora.
+    final double baseButtonTextSize = size.width * 0.04;
+    final double scaledButtonTextSize = baseButtonTextSize * (fontSizeProvider.fontSize / 16.0);
+
     final heightPadding = size.height * 0.02; // 2% de la altura
-    final buttonWidth = size.width * 0.6; // 60% del ancho de la pantalla
+    final buttonWidth = size.width * 0.6;    // 60% del ancho de la pantalla
 
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-            gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomLeft,
-                colors: [
-                  Color(0xFF49A5DE),
-                  Color(0xFF2D4554),
-                ],
-                stops: [0.0, 1.0]
-            )
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomLeft,
+            colors: [
+              Color(0xFF49A5DE),
+              Color(0xFF2D4554),
+            ],
+            stops: [0.0, 1.0],
+          ),
         ),
         child: SafeArea(
           child: Stack(
-              children: [
-                Positioned(
-                  left: 16,
-                  top: 16,
-                  child: IconButton(
-                      onPressed: _showExitDialog,
-                      icon: const Icon(Icons.arrow_back, color: Colors.white)
-                  ),
+            children: [
+              // Botón "atrás"
+              Positioned(
+                left: 16,
+                top: 16,
+                child: IconButton(
+                  onPressed: _showExitDialog,
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
                 ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: RoundedCard(
-                    height: size.height * 0.85,
-                    radius: size.width * 0.1, // 10% del ancho para el radio
-                    child: SingleChildScrollView( // Añadido para evitar overflow en pantallas pequeñas
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: size.width * 0.08, // 8% del ancho
-                          vertical: heightPadding,
-                        ),
-                        child: Column(
-                          children: <Widget>[
+              ),
+              // Card principal
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: RoundedCard(
+                  height: size.height * 0.85,
+                  radius: size.width * 0.1, // 10% del ancho para el radio
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: size.width * 0.08,
+                        vertical: heightPadding,
+                      ),
+                      child: Column(
+                        children: <Widget>[
+                          // Título "Quipu Talk"
+                          Text(
+                            'Quipu Talk',
+                            style: TextStyle(
+                              fontSize: scaledTitleSize,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF2D4554),
+                            ),
+                          ),
+                          SizedBox(height: heightPadding),
+
+                          // Si es la primera vez: imagen "welcome_image"
+                          if (_isFirstTime) ...[
+                            Image.asset(
+                              'assets/welcome_image.png',
+                              height: size.height * 0.25,
+                              width: size.width * 0.8,
+                              fit: BoxFit.contain,
+                            ),
+                            SizedBox(height: heightPadding),
                             Text(
-                              'Quipu Talk',
+                              'Tutorial de Bienvenida',
                               style: TextStyle(
-                                fontSize: size.width * 0.09, // 9% del ancho
-                                fontWeight: FontWeight.bold,
+                                fontSize: scaledSubTitleSize,
+                                fontWeight: FontWeight.w600,
                                 color: const Color(0xFF2D4554),
                               ),
                             ),
+                          ] else ...[
                             SizedBox(height: heightPadding),
-                            if(_isFirstTime) ...[
-                              Image.asset(
-                                'assets/welcome_image.png',
-                                height: size.height * 0.25, // 25% de la altura
-                                width: size.width * 0.8, // 80% del ancho
-                                fit: BoxFit.contain,
-                              ),
-                              SizedBox(height: heightPadding),
-                              Text(
-                                'Tutorial de Bienvenida',
-                                style: TextStyle(
-                                  fontSize: size.width * 0.06, // 6% del ancho
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF2D4554),
-                                ),
-                              ),
-                            ] else ...[
-                              SizedBox(height: heightPadding),
-                              Image.asset(
-                                'assets/welcome_image_2.png',
-                                height: size.height * 0.25,
-                                width: size.width * 0.8,
-                                fit: BoxFit.contain,
-                              ),
-                            ],
-                            SizedBox(height: heightPadding * 1.5),
-                            SizedBox(
-                              width: buttonWidth,
-                              child: _buildButton(
-                                'Traducción de LSP',
-                                Icons.handshake_outlined,
-                                _navigateToCamera,
-                                HexColor.fromHex("#FF5034"),
-                              ),
-                            ),
-                            SizedBox(height: heightPadding),
-                            SizedBox(
-                              width: buttonWidth,
-                              child: _buildButton(
-                                'Ajustes',
-                                Icons.settings,
-                                _navigateToSettings,
-                                HexColor.fromHex("#768893"),
-                              ),
+                            Image.asset(
+                              'assets/welcome_image_2.png',
+                              height: size.height * 0.25,
+                              width: size.width * 0.8,
+                              fit: BoxFit.contain,
                             ),
                           ],
-                        ),
+
+                          SizedBox(height: heightPadding * 1.5),
+
+                          // Primer botón
+                          SizedBox(
+                            width: buttonWidth,
+                            child: _buildButton(
+                              text: 'Traducción de LSP',
+                              icon: Icons.handshake_outlined,
+                              onPressed: _navigateToCamera,
+                              color: HexColor.fromHex("#FF5034"),
+                              fontSize: scaledButtonTextSize, // Enviado para ajustar
+                            ),
+                          ),
+
+                          SizedBox(height: heightPadding),
+
+                          // Segundo botón
+                          SizedBox(
+                            width: buttonWidth,
+                            child: _buildButton(
+                              text: 'Ajustes',
+                              icon: Icons.settings,
+                              onPressed: _navigateToSettings,
+                              color: HexColor.fromHex("#768893"),
+                              fontSize: scaledButtonTextSize,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
-              ]
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildButton(
-      String text, IconData icon, VoidCallback onPressed, Color color) {
+  /// Botón que recibe `fontSize` para ajustar el texto
+  Widget _buildButton({
+    required String text,
+    required IconData icon,
+    required VoidCallback onPressed,
+    required Color color,
+    required double fontSize,
+  }) {
     return ElevatedButton(
       onPressed: _isConnected ? onPressed : null,
       style: ElevatedButton.styleFrom(
@@ -258,7 +295,7 @@ class _HomeScreenState extends State<HomeScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white,
-                fontSize: MediaQuery.of(context).size.width * 0.04, // 4% del ancho
+                fontSize: fontSize, // ajustado
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -267,12 +304,10 @@ class _HomeScreenState extends State<HomeScreen> {
           Icon(
             icon,
             color: Colors.white,
-            size: MediaQuery.of(context).size.width * 0.06, // 6% del ancho
+            size: fontSize + 4.0, // Ajuste para el ícono
           ),
         ],
       ),
     );
   }
-
 }
-

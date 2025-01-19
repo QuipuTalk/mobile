@@ -1,8 +1,9 @@
 
 // accessibility_settings_screen.dart
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quiputalk/utils/rounded_card.dart';
+import 'package:provider/provider.dart'; // Importar Provider
+import 'package:quiputalk/providers/font_size_provider.dart';
 
 class AccessibilitySettingsScreen extends StatefulWidget {
   const AccessibilitySettingsScreen({super.key});
@@ -12,28 +13,14 @@ class AccessibilitySettingsScreen extends StatefulWidget {
 }
 
 class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScreen> {
-  double fontSize = 16.0;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadFontSizePreference();
-  }
-
-  Future<void> _loadFontSizePreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      fontSize = prefs.getDouble('font_size') ?? 16.0;
-    });
-  }
-
-  Future<void> _saveFontSizePreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('font_size', fontSize);
-  }
 
   @override
   Widget build(BuildContext context) {
+
+    // Obtenemos nuestro provider
+    final fontSizeProvider = Provider.of<FontSizeProvider>(context);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         // Calculamos dimensiones responsivas basadas en el tamaño de la pantalla
@@ -113,22 +100,20 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
                               ),
                               const SizedBox(height: 10),
                               Slider(
-                                value: fontSize,
+                                value: fontSizeProvider.fontSize,
                                 min: 12.0,
                                 max: 24.0,
                                 divisions: 6,
-                                label: '${fontSize.round()}',
+                                  label: fontSizeProvider.fontSize.round().toString(),
                                 onChanged: (value) {
-                                  setState(() {
-                                    fontSize = value;
-                                  });
-                                  _saveFontSizePreference();
+                                  //Actualizar el provider (y SharedPreferences) con setFontSize
+                                  fontSizeProvider.setFontSize(value);
                                 },
                               ),
                               const SizedBox(height: 20),
                               Text(
                                 'Ejemplo de texto para visualizar el tamaño',
-                                style: TextStyle(fontSize: fontSize),
+                                style: TextStyle(fontSize: fontSizeProvider.fontSize),
                                 textAlign: TextAlign.center,
                               ),
                             ],
