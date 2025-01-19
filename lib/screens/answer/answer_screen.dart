@@ -376,42 +376,47 @@ class _AnswerScreenState extends State<AnswerScreen> {
                       color: HexColor.fromHex('#7B9DB0'),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Opciones',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        if (isLoadingReplies)
-                          const Center(
-                            child: CircularProgressIndicator(
+                    constraints: const BoxConstraints(
+                      maxHeight: 250,
+                    ),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Opciones',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
-                          )
-                        else
-                          for (var reply in suggestedReplies) ...[
-                            OptionWidget(
-                              text: reply,
-                              onTap: () {
-                                _addMessageAndHandleUserResponse(
-                                  reply,
-                                  MessageType.user,
-                                );
-                                ConversationNavigator.navigateToResponseDisplay(
-                                  context,
-                                  reply,
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 8),
-                          ],
-                      ],
+                          ),
+                          const SizedBox(height: 8),
+                          if (isLoadingReplies)
+                            const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            )
+                          else
+                            for (var reply in suggestedReplies) ...[
+                              OptionWidget(
+                                text: reply,
+                                onTap: () {
+                                  _addMessageAndHandleUserResponse(
+                                    reply,
+                                    MessageType.user,
+                                  );
+                                  ConversationNavigator.navigateToResponseDisplay(
+                                    context,
+                                    reply,
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
