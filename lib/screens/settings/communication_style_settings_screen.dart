@@ -6,17 +6,32 @@ class CommunicationStyleSettingsScreen extends StatefulWidget {
   const CommunicationStyleSettingsScreen({super.key});
 
   @override
-  State<CommunicationStyleSettingsScreen> createState() => _CommunicationStyleSettingsScreenState();
+  State<CommunicationStyleSettingsScreen> createState() =>
+      _CommunicationStyleSettingsScreenState();
 }
 
-class _CommunicationStyleSettingsScreenState extends State<CommunicationStyleSettingsScreen> {
+class _CommunicationStyleSettingsScreenState
+    extends State<CommunicationStyleSettingsScreen> {
   String? selectedStyle;
   bool isLoading = true;
 
-  final List<String> styles = [
-    'neutral',
-    'formal',
-    'informal',
+  // Esta es tu lista de estilos, con 'key', 'label' y 'image'.
+  final List<Map<String, String>> styleOptions = [
+    {
+      'key': 'neutral',
+      'label': 'Neutral',
+      'image': 'assets/images/neutral.png', // Ajusta la ruta si es necesario
+    },
+    {
+      'key': 'formal',
+      'label': 'Formal',
+      'image': 'assets/images/formal.png',
+    },
+    {
+      'key': 'informal',
+      'label': 'Informal',
+      'image': 'assets/images/informal.png',
+    },
   ];
 
   @override
@@ -25,16 +40,22 @@ class _CommunicationStyleSettingsScreenState extends State<CommunicationStyleSet
     _loadStylePreference();
   }
 
+  // Cargamos el estilo desde SharedPreferences
   Future<void> _loadStylePreference() async {
     final prefs = await SharedPreferences.getInstance();
-    // Asegúrate de que el valor sea consistente con los elementos en la lista `styles`
     String? savedStyle = prefs.getString('communication_style')?.toLowerCase();
+
+    // Verificamos si existe en 'styleOptions'. De lo contrario, ponemos por defecto el primero.
+    final allKeys = styleOptions.map((option) => option['key']).toList();
     setState(() {
-      selectedStyle = styles.contains(savedStyle) ? savedStyle : styles[0];
+      selectedStyle = allKeys.contains(savedStyle)
+          ? savedStyle
+          : styleOptions[0]['key'];
       isLoading = false;
     });
   }
 
+  // Guardamos el estilo seleccionado en SharedPreferences
   Future<void> _saveStylePreference() async {
     if (selectedStyle != null) {
       final prefs = await SharedPreferences.getInstance();
@@ -42,15 +63,79 @@ class _CommunicationStyleSettingsScreenState extends State<CommunicationStyleSet
     }
   }
 
+  // Widget que construye la "tarjeta" de cada estilo
+  Widget _buildStyleCard(
+      String styleKey,
+      String label,
+      String imageAsset,
+      double subtitleFontSize,
+      ) {
+    final bool isSelected = (styleKey == selectedStyle);
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedStyle = styleKey;
+          _saveStylePreference();
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? Colors.blue : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 2,
+              blurRadius: 5,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Imagen
+            Image.asset(
+              imageAsset,
+              height: 80, // Ajusta el tamaño de la imagen según tu diseño
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 8),
+            // Etiqueta
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: subtitleFontSize,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.blueGrey : Colors.black,
+              ),
+            ),
+            // Icono de check solo si está seleccionado
+            if (isSelected) ...[
+              const SizedBox(height: 8),
+              const Icon(Icons.check_circle, color: Colors.blue),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Calculamos dimensiones responsivas basadas en el tamaño de la pantalla
+        // Cálculo responsivo
         final double screenWidth = constraints.maxWidth;
         final double screenHeight = constraints.maxHeight;
 
-        // Ajustamos tamaños de forma responsiva
         final double titleFontSize = screenWidth * 0.06;
         final double subtitleFontSize = screenWidth * 0.04;
         final double cardRadius = screenWidth * 0.08;
@@ -84,12 +169,13 @@ class _CommunicationStyleSettingsScreenState extends State<CommunicationStyleSet
                       children: [
                         IconButton(
                           onPressed: Navigator.of(context).pop,
-                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          icon: const Icon(Icons.arrow_back,
+                              color: Colors.white),
                           iconSize: screenWidth * 0.06,
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
-                        SizedBox(width: screenWidth * 0.04), // Espacio entre el icono y el texto
+                        SizedBox(width: screenWidth * 0.04),
                         Expanded(
                           child: Text(
                             'Estilo de Comunicación',
@@ -101,8 +187,9 @@ class _CommunicationStyleSettingsScreenState extends State<CommunicationStyleSet
                             textAlign: TextAlign.center,
                           ),
                         ),
-                        // Espacio equivalente al icono para centrar el título
-                        SizedBox(width: screenWidth * 0.06 + screenWidth * 0.04),
+                        SizedBox(
+                            width: screenWidth * 0.06 +
+                                screenWidth * 0.04),
                       ],
                     ),
                   ),
@@ -128,42 +215,15 @@ class _CommunicationStyleSettingsScreenState extends State<CommunicationStyleSet
                                 textAlign: TextAlign.center,
                               ),
                               SizedBox(height: screenHeight * 0.04),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: paddingHorizontal,
+
+                              // Mostramos las tarjetas para cada estilo
+                              for (var option in styleOptions)
+                                _buildStyleCard(
+                                  option['key']!,
+                                  option['label']!,
+                                  option['image']!,
+                                  subtitleFontSize,
                                 ),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(cardRadius * 0.5),
-                                  border: Border.all(
-                                    color: Colors.grey.shade300,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    value: selectedStyle,
-                                    isExpanded: true,
-                                    icon: const Icon(Icons.arrow_drop_down),
-                                    items: styles.map((style) {
-                                      return DropdownMenuItem<String>(
-                                        value: style,
-                                        child: Text(
-                                          style,
-                                          style: TextStyle(
-                                            fontSize: subtitleFontSize * 0.8,
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                    onChanged: (String? newValue) {
-                                      setState(() {
-                                        selectedStyle = newValue;
-                                        _saveStylePreference();
-                                      });
-                                    },
-                                  ),
-                                ),
-                              ),
                             ],
                           ),
                         ),

@@ -75,6 +75,9 @@ flutter:
     - assets/welcome_image.png
     - assets/welcome_image_2.png
     - assets/videos/sample_video.mp4
+    - assets/images/formal.png
+    - assets/images/neutral.png
+    - assets/images/informal.png
 
   fonts:
     - family: LexendDeca
