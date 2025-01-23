@@ -78,6 +78,9 @@ flutter:
     - assets/images/formal.png
     - assets/images/neutral.png
     - assets/images/informal.png
+    - assets/tutorial/tutorial_img1.png
+    - assets/tutorial/tutorial_img2.png
+    - assets/tutorial/tutorial_img3.png
 
   fonts:
     - family: LexendDeca

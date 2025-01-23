@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:quiputalk/screens/camera/video_screen.dart';
 
 import '../../providers/camera_controller_service.dart';
@@ -17,23 +17,19 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver {
-  CameraController? get _cameraController => CameraControllerService.cameraController;
   bool _isRecording = false;
   int _recordingDuration = 0;
   Timer? _recordingTimer;
+
+  CameraController? get _cameraController => CameraControllerService.cameraController;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initializeCamera();
-  }
 
-  Future<void> _initializeCamera() async {
-    await CameraControllerService.initializeCamera();
-    //await _cameraController?.lockCaptureOrientation(DeviceOrientation.portraitUp);
-
-    if (mounted) setState(() {});
+    // Pedimos permisos y luego inicializamos la cámara
+    _requestPermissionsAndInitialize();
   }
 
   @override
@@ -43,22 +39,60 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     super.dispose();
   }
 
+  // Manejo del ciclo de vida: si la app se pausa o reanuda
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    super.didChangeAppLifecycleState(state);
+
+    if (!mounted) return;
+
     if (state == AppLifecycleState.resumed) {
-      _initializeCamera();
-    } else if (state == AppLifecycleState.inactive) {
+      // Al reanudar, sólo reinicializa si la cámara se había cerrado
+      if (_cameraController == null || !_cameraController!.value.isInitialized) {
+        // Pedimos permisos de nuevo en caso de que hayan cambiado
+        await _requestPermissionsAndInitialize();
+      }
+    } else if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      // Liberamos la cámara si la app no está activa
       CameraControllerService.disposeCamera();
+    }
+  }
+
+  Future<void> _requestPermissionsAndInitialize() async {
+    // 1. Pedir permisos de cámara y micrófono
+    final cameraStatus = await Permission.camera.request();
+    final micStatus = await Permission.microphone.request();
+
+    // 2. Verificar si ambos fueron concedidos
+    if (cameraStatus.isGranted && micStatus.isGranted) {
+      // Ahora sí, inicializamos la cámara (una sola vez)
+      await CameraControllerService.initializeCamera();
+      if (mounted) setState(() {});
+    } else {
+      // El usuario negó permisos o algo salió mal
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se concedieron permisos de cámara/micrófono')),
+      );
+      Navigator.of(context).pop(); // salir de la pantalla de cámara
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Si la cámara no está lista, mostramos un loading
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       return _buildLoadingScreen();
     }
+
     return Scaffold(
       body: _buildBody(),
+    );
+  }
+
+  Widget _buildLoadingScreen() {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 
@@ -77,12 +111,6 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildLoadingScreen() {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
     );
   }
 
@@ -150,39 +178,26 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   }
 
   Future<void> _startRecording() async {
-    if (_cameraController!.value.isRecordingVideo) return;
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        _cameraController!.value.isRecordingVideo) {
+      return;
+    }
 
     try {
       await _cameraController!.startVideoRecording();
       setState(() => _isRecording = true);
-      _startTimer(); // Start the timer when the recording starts
+      _startTimer();
     } catch (e) {
       print('Error starting video recording: $e');
     }
   }
 
-  // En el método _stopRecording, actualiza la navegación:
-  /**
   Future<void> _stopRecording() async {
-    if (!_cameraController!.value.isRecordingVideo) return;
-
-    try {
-      XFile videoFile = await _cameraController!.stopVideoRecording();
-      setState(() => _isRecording = false);
-      _stopTimer();
-
-      final tempDir = await getTemporaryDirectory();
-      final tempPath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4';
-      await File(videoFile.path).copy(tempPath);
-
-      await ConversationNavigator.navigateToVideo(context, tempPath);
-    } catch (e) {
-      print('Error stopping video recording: $e');
+    if (_cameraController == null ||
+        !_cameraController!.value.isRecordingVideo) {
+      return;
     }
-  }
-   **/
-  Future<void> _stopRecording() async {
-    if (!_cameraController!.value.isRecordingVideo) return;
 
     try {
       XFile videoFile = await _cameraController!.stopVideoRecording();
@@ -193,13 +208,13 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       final tempPath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4';
       await File(videoFile.path).copy(tempPath);
 
-      // Navegar a VideoScreen y pasar la ruta del video grabado
+      // Navegar a VideoScreen y pasar la ruta del video
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => VideoScreen(
             videoPath: tempPath,
-            useAssetVideo: false, // Indica que no se debe usar el video de assets
+            useAssetVideo: false,
           ),
         ),
       );
@@ -208,13 +223,12 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     }
   }
 
-
   void _startTimer() {
     _recordingDuration = 0;
     _recordingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() => _recordingDuration++);
       if (_recordingDuration >= 30) {
-        _stopRecording(); // Automatically stop recording after 30 seconds
+        _stopRecording(); // Automatic stop after 30s
       }
     });
   }

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-// Importamos Provider y nuestro FontSizeProvider
 import 'package:provider/provider.dart';
 import 'package:quiputalk/providers/font_size_provider.dart';
 
 import 'package:quiputalk/providers/camera_controller_service.dart';
 import 'package:quiputalk/routes/conversation_navigator.dart';
 import 'package:quiputalk/screens/camera/camera_screen.dart';
+import 'package:quiputalk/screens/tutorial_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 import 'package:quiputalk/utils/hexadecimal_color.dart';
@@ -23,13 +23,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final Connectivity _connectivity = Connectivity();
-  bool _isConnected = true;
-  bool _isFirstTime = true;
 
-  void _testConnection() async {
-    BackendService backendService = BackendService();
-    await backendService.testBackendConnection();
-  }
+  bool _isConnected = true;
+  bool _checkedFirstTime = false; // Para saber si ya cargamos la preferencia
 
   @override
   void initState() {
@@ -38,6 +34,11 @@ class _HomeScreenState extends State<HomeScreen> {
     _testConnection();
     _checkFirstTime();
     _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
+  }
+
+  Future<void> _testConnection() async {
+    BackendService backendService = BackendService();
+    await backendService.testBackendConnection();
   }
 
   Future<void> _initializeConnectivity() async {
@@ -60,17 +61,26 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// Verifica si es la primera vez que inicia la app
   Future<void> _checkFirstTime() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
     bool? firstTime = prefs.getBool('first_time');
+
     if (firstTime == null || firstTime == true) {
-      setState(() {
-        _isFirstTime = true;
-      });
+      // Marcamos que ya no es primera vez
       await prefs.setBool('first_time', false);
+
+      // Mostramos el tutorial en cuanto la pantalla se haya construido
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const TutorialScreen()),
+        );
+      });
     } else {
+      // No es la primera vez, así que simplemente mostramos la Home normal
       setState(() {
-        _isFirstTime = false;
+        _checkedFirstTime = true;
       });
     }
   }
@@ -78,7 +88,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showNoInternetNotification() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('No hay conexión a Internet. Las funciones de traducción no estarán disponibles.'),
+        content: Text(
+            'No hay conexión a Internet. Las funciones de traducción no estarán disponibles.'),
         duration: Duration(seconds: 3),
         backgroundColor: Colors.red,
       ),
@@ -114,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _navigateToCamera(){
+  void _navigateToCamera() {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -126,25 +137,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Obtenemos el tamaño de pantalla y el fontSize del provider
-    final size = MediaQuery.of(context).size;
-    final fontSizeProvider = Provider.of<FontSizeProvider>(context, listen: true);
+    // Si todavía no sabemos si es la primera vez,
+    // podemos mostrar un loader o un Container vacío
+    if (!_checkedFirstTime) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
-    // 2. Si quieres combinar tu "responsivo" + tamaño ajustable:
-    //    Multiplicamos lo que tenías por (fontSize / 16)
+    // Ya no es la primera vez, construimos la UI normal
+    final size = MediaQuery.of(context).size;
+    final fontSizeProvider = Provider.of<FontSizeProvider>(context);
+
     final double baseTitleSize = size.width * 0.09;
     final double scaledTitleSize = baseTitleSize * (fontSizeProvider.fontSize / 16.0);
 
-    final double baseSubTitleSize = size.width * 0.06;
-    final double scaledSubTitleSize = baseSubTitleSize * (fontSizeProvider.fontSize / 16.0);
-
-    // Para los botones, puedes usarlo directamente o combinar
-    // con la parte responsiva. Lo mantengo simple por ahora.
     final double baseButtonTextSize = size.width * 0.04;
     final double scaledButtonTextSize = baseButtonTextSize * (fontSizeProvider.fontSize / 16.0);
 
-    final heightPadding = size.height * 0.02; // 2% de la altura
-    final buttonWidth = size.width * 0.6;    // 60% del ancho de la pantalla
+    final heightPadding = size.height * 0.02;
+    final buttonWidth = size.width * 0.6;
 
     return Scaffold(
       body: Container(
@@ -171,6 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
                 ),
               ),
+
               // Card principal
               Positioned(
                 left: 0,
@@ -178,7 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 bottom: 0,
                 child: RoundedCard(
                   height: size.height * 0.85,
-                  radius: size.width * 0.1, // 10% del ancho para el radio
+                  radius: size.width * 0.1,
                   child: SingleChildScrollView(
                     child: Padding(
                       padding: EdgeInsets.symmetric(
@@ -198,36 +211,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           SizedBox(height: heightPadding),
 
-                          // Si es la primera vez: imagen "welcome_image"
-                          if (_isFirstTime) ...[
-                            Image.asset(
-                              'assets/welcome_image.png',
-                              height: size.height * 0.25,
-                              width: size.width * 0.8,
-                              fit: BoxFit.contain,
-                            ),
-                            SizedBox(height: heightPadding),
-                            Text(
-                              'Tutorial de Bienvenida',
-                              style: TextStyle(
-                                fontSize: scaledSubTitleSize,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF2D4554),
-                              ),
-                            ),
-                          ] else ...[
-                            SizedBox(height: heightPadding),
-                            Image.asset(
-                              'assets/welcome_image_2.png',
-                              height: size.height * 0.25,
-                              width: size.width * 0.8,
-                              fit: BoxFit.contain,
-                            ),
-                          ],
-
+                          // Imagen normal de Home
+                          Image.asset(
+                            'assets/welcome_image_2.png',
+                            height: size.height * 0.25,
+                            width: size.width * 0.8,
+                            fit: BoxFit.contain,
+                          ),
                           SizedBox(height: heightPadding * 1.5),
 
-                          // Primer botón
+                          // Botón "Traducción de LSP"
                           SizedBox(
                             width: buttonWidth,
                             child: _buildButton(
@@ -235,13 +228,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.handshake_outlined,
                               onPressed: _navigateToCamera,
                               color: HexColor.fromHex("#FF5034"),
-                              fontSize: scaledButtonTextSize, // Enviado para ajustar
+                              fontSize: scaledButtonTextSize,
                             ),
                           ),
-
                           SizedBox(height: heightPadding),
 
-                          // Segundo botón
+                          // Botón "Ajustes"
                           SizedBox(
                             width: buttonWidth,
                             child: _buildButton(
@@ -265,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Botón que recibe `fontSize` para ajustar el texto
+  /// Botón reutilizable
   Widget _buildButton({
     required String text,
     required IconData icon,
@@ -295,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white,
-                fontSize: fontSize, // ajustado
+                fontSize: fontSize,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -304,7 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Icon(
             icon,
             color: Colors.white,
-            size: fontSize + 4.0, // Ajuste para el ícono
+            size: fontSize + 4.0,
           ),
         ],
       ),
