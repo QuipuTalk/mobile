@@ -70,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // Marcamos que ya no es primera vez
       await prefs.setBool('first_time', false);
 
-      // Mostramos el tutorial en cuanto la pantalla se haya construido
+      // Mostramos el tutorial
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushReplacement(
           context,
@@ -78,12 +78,13 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       });
     } else {
-      // No es la primera vez, así que simplemente mostramos la Home normal
+      // No es la primera vez, activamos la UI
       setState(() {
         _checkedFirstTime = true;
       });
     }
   }
+
 
   void _showNoInternetNotification() {
     ScaffoldMessenger.of(context).showSnackBar(

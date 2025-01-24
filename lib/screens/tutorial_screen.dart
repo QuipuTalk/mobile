@@ -1,6 +1,8 @@
 // tutorial_screen.dart
 import 'package:flutter/material.dart';
 
+import 'home_screen.dart';
+
 class TutorialScreen extends StatefulWidget {
   const TutorialScreen({Key? key}) : super(key: key);
 
@@ -37,10 +39,14 @@ class _TutorialScreenState extends State<TutorialScreen> {
         curve: Curves.easeIn,
       );
     } else {
-      // Cuando llegue a la última página, cierra el tutorial
-      Navigator.of(context).pop();
+      // Navegar al HomeScreen al finalizar el tutorial
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
