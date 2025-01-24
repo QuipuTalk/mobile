@@ -15,6 +15,7 @@
 
     <application
         android:label="quiputalk"
+        android:enableOnBackInvokedCallback="true"
         android:requestLegacyExternalStorage="true"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
