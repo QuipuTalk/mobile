@@ -415,6 +415,28 @@ class _AnswerScreenState extends State<AnswerScreen> {
                               ),
                               const SizedBox(height: 8),
                             ],
+
+                          //NUEVO BOTÓN "volver a generar"
+                          Center(
+                            child: GestureDetector(
+                              onTap: (){
+                                final lastSignLanguageMsg = _conversationService.messages.lastWhere(
+                                      (msg) => msg.type == MessageType.signLanguage,
+                                  orElse: () => ChatMessage(widget.initialMessage, MessageType.signLanguage),
+                                );
+                                _getSuggestedReplies(lastSignLanguageMsg.text);
+                              },
+                              child: const Text(
+                                'Volver a generar',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          )
                         ],
                       ),
                     ),
