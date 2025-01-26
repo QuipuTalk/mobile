@@ -12,24 +12,32 @@ import '../camera/camera_screen.dart';
 // Importa tu FontSizeProvider
 import 'package:quiputalk/providers/font_size_provider.dart';
 
-class ResponseDisplayScreen extends StatelessWidget {
+class ResponseDisplayScreen extends StatefulWidget {
   final String response;
+
+  const ResponseDisplayScreen({Key? key, required this.response}) : super(key: key);
+
+  @override
+  State<ResponseDisplayScreen> createState() => _ResponseDisplayScreenState();
+}
+
+class _ResponseDisplayScreenState extends State<ResponseDisplayScreen> {
   final ConversationService _conversationService = ConversationService();
 
-  ResponseDisplayScreen({Key? key, required this.response}) : super(key: key);
+  // Variables para rating (estrellas) y comentario
+  int _selectedStars = 0;
+  final TextEditingController _feedbackController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    // 1. Obtenemos el provider y calculamos factores
     final sessionService = Provider.of<SessionService>(context, listen: false);
     final fontSizeProvider = Provider.of<FontSizeProvider>(context);
 
-    // Ejemplo: definimos tamaños base y calculamos un factor
+    // Ajustamos tamaños según el slider de accesibilidad
     final double baseTitleSize = 20.0;
     final double baseBodySize = 18.0;
     final double factor = fontSizeProvider.fontSize / 16.0;
 
-    // Ajustados con nuestro factor
     final double scaledTitleSize = baseTitleSize * factor;
     final double scaledBodySize = baseBodySize * factor;
 
@@ -65,7 +73,6 @@ class ResponseDisplayScreen extends StatelessWidget {
               children: [
                 Text(
                   'Respuesta',
-                  // Quitamos el const porque usamos variables dinámicas
                   style: TextStyle(
                     fontSize: scaledTitleSize,
                     fontWeight: FontWeight.bold,
@@ -87,7 +94,7 @@ class ResponseDisplayScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(16.0),
                   child: SingleChildScrollView(
                     child: Text(
-                      response,
+                      widget.response,
                       style: TextStyle(fontSize: scaledBodySize),
                       textAlign: TextAlign.left,
                     ),
@@ -101,6 +108,7 @@ class ResponseDisplayScreen extends StatelessWidget {
             // Botones
             Column(
               children: [
+                // Botón "Volver a grabar"
                 FractionallySizedBox(
                   widthFactor: 0.7,
                   child: ElevatedButton(
@@ -115,25 +123,25 @@ class ResponseDisplayScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    // Texto del botón escalable
                     child: Text(
                       'Volver a grabar',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: scaledBodySize * 0.9, // si lo quieres un poco más chico
+                        fontSize: scaledBodySize * 0.9,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 10),
+
+                // Botón "Terminar conversación"
                 FractionallySizedBox(
                   widthFactor: 0.7,
                   child: ElevatedButton(
                     onPressed: () {
-                      // Terminar la conversación y limpiar el sessionId
-                      sessionService.clearSessionId();
-                      _conversationService.clearMessages();
-                      Navigator.popUntil(context, (route) => route.isFirst);
+                      // En lugar de terminar la conversación de inmediato,
+                      // mostramos el diálogo de calificación
+                      _showRatingDialog(sessionService);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF607D8B),
@@ -157,5 +165,125 @@ class ResponseDisplayScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Muestra el diálogo de calificación
+  void _showRatingDialog(SessionService sessionService) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // usuario debe elegir algo
+      builder: (BuildContext dialogContext) {
+        // Usamos un StatefulBuilder para refrescar el estado de estrellas
+        return StatefulBuilder(
+          builder: (BuildContext localCtx, StateSetter setStateDialog) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              title: const Text('¿Cómo calificarías tu experiencia con QuipuTalk?'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Filita de estrellas
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (index) {
+                      final starIndex = index + 1;
+                      return IconButton(
+                        icon: Icon(
+                          starIndex <= _selectedStars ? Icons.star : Icons.star_border,
+                          color: Colors.amber,
+                          size: 32,
+                        ),
+                        onPressed: () {
+                          // Actualizamos el estado del diálogo
+                          setStateDialog(() {
+                            _selectedStars = starIndex;
+                          });
+                        },
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 8),
+                  // Comentario opcional
+                  TextField(
+                    controller: _feedbackController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      hintText: 'Comparte un comentario (opcional)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    // Cierra el diálogo de calificación
+                    Navigator.of(dialogContext).pop();
+                    // Fin de la conversación
+                    _endConversation(sessionService);
+                  },
+                  child: const Text('Omitir'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    // Ejemplo: imprimir la calificación
+                    print('Estrellas seleccionadas: $_selectedStars');
+                    print('Feedback: ${_feedbackController.text}');
+
+                    // 1. Cerrar diálogo de calificación
+                    Navigator.of(dialogContext).pop();
+
+                    // 2. Muestra diálogo "Gracias por calificar"
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (BuildContext thanksDialogCtx) {
+                        return AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Text(
+                                'Gracias por calificar tu experiencia',
+                                style: TextStyle(fontSize: 18),
+                              ),
+                              SizedBox(height: 16),
+                              Icon(Icons.sign_language, size: 48, color: Colors.blueGrey),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+
+                    // 3. Espera 2s
+                    await Future.delayed(const Duration(seconds: 2));
+
+                    // 4. Cierra el popUp "Gracias" y termina la conversación (si sigue montado)
+                    if (!mounted) return;
+                    Navigator.of(context).pop();
+
+                    if (!mounted) return;
+                    _endConversation(sessionService);
+                  },
+                  child: const Text('Enviar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Finaliza la conversación y regresa a la pantalla principal
+  void _endConversation(SessionService sessionService) {
+    sessionService.clearSessionId();
+    _conversationService.clearMessages();
+    if (!mounted) return;
+    Navigator.popUntil(context, (route) => route.isFirst);
   }
 }
