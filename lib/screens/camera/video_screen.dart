@@ -17,8 +17,6 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
-// Otras importaciones...
-
 
 
 class VideoScreen extends StatefulWidget {
@@ -47,20 +45,7 @@ class _VideoScreenState extends State<VideoScreen> {
     _currentVideoPath = widget.videoPath;
     _initializeVideoPlayer();
   }
-  /**
 
-  void _initializeVideoPlayer() {
-    if (widget.useAssetVideo) {
-      // Cargar video desde assets
-      _controller = VideoPlayerController.asset('assets/videos/sample_video.mp4');
-    } else {
-      // Cargar video desde _currentVideoPath
-      _controller = VideoPlayerController.file(File(_currentVideoPath));
-    }
-    _initializeVideoPlayerFuture = _controller.initialize();
-    _controller.setLooping(false);
-  }
-**/
   void _initializeVideoPlayer() {
     // Cargar el video desde la ruta proporcionada
     _controller = VideoPlayerController.file(File(_currentVideoPath));
@@ -176,7 +161,7 @@ class _VideoScreenState extends State<VideoScreen> {
     }
   }
 
-//aqui
+
   Widget _futureBuilder(BuildContext context) {
     return FutureBuilder(
       future: _initializeVideoPlayerFuture,
@@ -258,7 +243,6 @@ class _VideoScreenState extends State<VideoScreen> {
   }
 
   Future<void> _showLoadingDialogAndNavigate() async {
-    // Mostrar diálogo de carga
     showDialog(
       barrierDismissible: false,
       context: context,
@@ -301,7 +285,7 @@ class _VideoScreenState extends State<VideoScreen> {
 
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('https://sign-language-api-599414446323.southamerica-east1.run.app/predict'),
+        Uri.parse('https://backend-model-447652637002.us-central1.run.app/predict'),
       );
 
 
@@ -348,7 +332,9 @@ class _VideoScreenState extends State<VideoScreen> {
         var jsonData = json.decode(responseData);
 
         // Extraer el texto traducido
-        String translatedMessage = jsonData['prediction'];
+        //String translatedMessage = jsonData['prediction'];
+        String translatedMessage = jsonData['sentence'] ?? "Mensaje vacío";
+
 
         // Imprimir el mensaje traducido en la consola
         print('Translated Message: $translatedMessage');
@@ -417,30 +403,7 @@ class _VideoScreenState extends State<VideoScreen> {
     }
   }
 
-/**
-  void _navigateToTrimmer() async {
-    var status = await Permission.videos.request();
-    if (status.isGranted) {
-      final result = await Navigator.of(context).push<String>(
-        MaterialPageRoute(
-          builder: (context) => TrimmerView(File(_currentVideoPath)),
-        ),
-      );
 
-      if (result != null) {
-        setState(() {
-          _currentVideoPath = result;
-          _controller.dispose();
-          _initializeVideoPlayer();
-        });
-      }
-    } else {
-      final snackBar = SnackBar(
-        content: Text('Permiso de acceso a videos requerido para recortar el video.'),
-      );
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    }
-  }**/
   void _navigateToTrimmer() async {
     // Navega directamente a TrimmerView sin verificar permisos
     final result = await Navigator.of(context).push<String>(
