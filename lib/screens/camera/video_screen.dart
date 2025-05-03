@@ -283,9 +283,12 @@ class _VideoScreenState extends State<VideoScreen> {
         sessionService.setSessionId(sessionId!); // Almacenar el nuevo sessionId en el SessionService
       }
 
+      // URL HACIA EL BACKEND DEL MODELO
+      // ANTIGUA : https://lsp-api-447652637002.southamerica-west1.run.app/predict
+      // NUEVA : https://lsp-api-447652637002.southamerica-west1.run.app/predict
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('https://backend-model-447652637002.us-central1.run.app/predict'),
+        Uri.parse('https://lsp-api-447652637002.southamerica-west1.run.app/predict'),
       );
 
 
