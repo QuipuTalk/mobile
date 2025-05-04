@@ -26,7 +26,7 @@ class VideoScreen extends StatefulWidget {
   const VideoScreen({
     Key? key,
     required this.videoPath,
-    this.useAssetVideo = true, // Por defecto es false
+    this.useAssetVideo = false, // Por defecto es false
   }) : super(key: key);
 
   @override
