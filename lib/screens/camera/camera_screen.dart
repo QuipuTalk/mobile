@@ -9,6 +9,10 @@ import 'package:quiputalk/screens/camera/video_screen.dart';
 import '../../providers/camera_controller_service.dart';
 import '../../routes/conversation_navigator.dart';
 
+// Al inicio de camera_screen.dart:
+import 'package:shared_preferences/shared_preferences.dart';
+
+
 class CameraScreen extends StatefulWidget {
   const CameraScreen({Key? key}) : super(key: key);
 
@@ -114,6 +118,39 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     );
   }
 
+  /// Comprueba y, si es la primera grabación, muestra un diálogo de recomendaciones.
+  Future<void> _maybeShowVideoTips() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool shown = prefs.getBool('shown_video_tips') ?? false;
+
+    if (!shown) {
+      await showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Consejos para una buena grabación'),
+          content: const SingleChildScrollView(
+            child: ListBody(
+              children: [
+                Text('• Asegúrate de tener buena iluminación.'),
+                Text('• Evita el contraluz o fuentes de luz directa.'),
+                Text('• Sujeta el teléfono firmemente o usa un trípode.'),
+                Text('• Mantén el encuadre estable y al nivel de los hombros.'),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Entendido'),
+            ),
+          ],
+        ),
+      );
+      await prefs.setBool('shown_video_tips', true);
+    }
+  }
+
+
   Widget _buildCameraPreview() {
     return CameraPreview(_cameraController!);
   }
@@ -178,11 +215,19 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   }
 
   Future<void> _startRecording() async {
+    //if (_cameraController == null ||
+    //    !_cameraController!.value.isInitialized ||
+    //    _cameraController!.value.isRecordingVideo) {
+    //  return;
+    //}
     if (_cameraController == null ||
         !_cameraController!.value.isInitialized ||
         _cameraController!.value.isRecordingVideo) {
       return;
     }
+
+    // 1) Mostrar consejos la PRIMERA vez que inician grabación
+    await _maybeShowVideoTips();
 
     try {
       await _cameraController!.startVideoRecording();
