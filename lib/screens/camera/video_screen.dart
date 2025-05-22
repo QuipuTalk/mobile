@@ -194,7 +194,7 @@ class _VideoScreenState extends State<VideoScreen> {
         children: [
           Expanded(
             child: ElevatedButton(
-              onPressed: ()  async{
+              onPressed: () async {
                 // 1. Detener y liberar el reproductor de video
                 await _controller.pause();
                 await _controller.dispose();
@@ -203,16 +203,16 @@ class _VideoScreenState extends State<VideoScreen> {
                 try {
                   final videoFile = File(_currentVideoPath);
                   if (await videoFile.exists()) {
-                await videoFile.delete();
-                }
+                    await videoFile.delete();
+                  }
                 } catch (e) {
-                print('Error al eliminar el archivo de video: $e');
+                  print('Error al eliminar el archivo de video: $e');
                 }
 
                 // 3. Reinicializar la cámara y navegar
                 if (mounted) {
-                await CameraControllerService.resetCamera();
-                await ConversationNavigator.navigateToCameraScreen(context);
+                  await CameraControllerService.resetCamera();
+                  await ConversationNavigator.navigateToCameraScreen(context);
                 }
               },
               style: ButtonStyle(
@@ -310,16 +310,6 @@ class _VideoScreenState extends State<VideoScreen> {
       }
 
       // Agregar el archivo de video a la solicitud
-      /**
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'video',
-          videoFile.path,
-          contentType: MediaType('video', 'mp4'),
-        ),
-      );
-      **/
-      // Agregar el archivo de video a la solicitud
       request.files.add(
         await http.MultipartFile.fromPath(
           'video',
@@ -327,59 +317,43 @@ class _VideoScreenState extends State<VideoScreen> {
           contentType: MediaType('video', 'mp4'),
         ),
       );
-      // Enviar la solicitud al primer backend
-      var response = await request.send();
 
-      if (response.statusCode == 200) {
-        // Obtener los datos de la respuesta
-        var responseData = await response.stream.bytesToString();
-        var jsonData = json.decode(responseData);
-
-        // Extraer el texto traducido
-        //String translatedMessage = jsonData['prediction'];
-        String translatedMessage = jsonData['sentence'] ?? "Mensaje vacío";
-
-
-        // Imprimir el mensaje traducido en la consola
-        print('Translated Message: $translatedMessage');
-
-        // Ahora enviar el texto traducido al segundo backend para corrección
-        String correctedMessage = await _getCorrectedText(translatedMessage);
-
-        // Cerrar el diálogo de carga
-        if (mounted) {
-          Navigator.of(context).pop(); // Cierra el diálogo de carga
-
-          // Navegar a AnswerScreen pasando el mensaje corregido y sessionId
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AnswerScreen(
-                initialMessage: correctedMessage,
-                sessionId: sessionId!,
-              ),
-            ),
-          );
-        }
+      //Si el servicio está caído , usar un mock
+      const bool useMockTranslation = true;
+      String translatedMessage;
+      if (useMockTranslation) {
+        translatedMessage = "Esta es una traducción por defecto para continuar con el desarrollo.";
       } else {
-        // Manejar errores
-        print('Error: ${response.statusCode}');
-        // Cerrar el diálogo de carga
-        if (mounted) {
-          Navigator.of(context).pop();
+        // Enviar la solicitud al primer backend
+        var response = await request.send();
+        if (response.statusCode == 200) {
+          var responseData = await response.stream.bytesToString();
+          var jsonData = json.decode(responseData);
+          translatedMessage = jsonData['sentence'] ?? "Mensaje vacío";
+        } else {
+          // fallback en caso de status!=200
+          translatedMessage = "Traducción no disponible, usando traducción por defecto.";
         }
-        // Mostrar mensaje de error
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('Error'),
-            content: Text('Error al procesar el video. Por favor, inténtalo de nuevo.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text('Aceptar'),
-              ),
-            ],
+      }
+
+      // Imprimir el mensaje traducido en la consola
+      print('Translated Message: $translatedMessage');
+
+      // Ahora enviar el texto traducido al segundo backend para corrección
+      String correctedMessage = await _getCorrectedText(translatedMessage);
+
+      // Cerrar el diálogo de carga
+      if (mounted) {
+        Navigator.of(context).pop(); // Cierra el diálogo de carga
+
+        // Navegar a AnswerScreen pasando el mensaje corregido y sessionId
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AnswerScreen(
+              initialMessage: correctedMessage,
+              sessionId: sessionId!,
+            ),
           ),
         );
       }
@@ -407,7 +381,6 @@ class _VideoScreenState extends State<VideoScreen> {
     }
   }
 
-
   void _navigateToTrimmer() async {
     // Navega directamente a TrimmerView sin verificar permisos
     final result = await Navigator.of(context).push<String>(
@@ -424,8 +397,4 @@ class _VideoScreenState extends State<VideoScreen> {
       });
     }
   }
-
-
-
-
 }

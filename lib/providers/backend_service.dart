@@ -109,6 +109,27 @@ class BackendService {
     }
   }
 
-
+  /// Envía rating y comentario al stub /send_feedback/
+  Future<bool> sendFeedback({
+    required String sessionId,
+    required int rating,
+    String comment = "",
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/send_feedback/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'session_id': sessionId,
+          'rating': rating,
+          'comment': comment,
+        }),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error en sendFeedback: $e');
+      return false;
+    }
+  }
 
 }

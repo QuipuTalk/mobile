@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:quiputalk/providers/camera_controller_service.dart';
 import 'package:quiputalk/screens/settings/settings_screen.dart';
 import 'package:quiputalk/utils/hexadecimal_color.dart';
-
+import 'package:quiputalk/providers/backend_service.dart';
 import '../../providers/conversation_service.dart';
 import '../../providers/session_service.dart';
 import '../../routes/conversation_navigator.dart';
@@ -228,9 +228,24 @@ class _ResponseDisplayScreenState extends State<ResponseDisplayScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
+                    // Obtenemos el BackendService AQUÍ dentro del onPressed
+                    final backendService = BackendService(); // <-- Cambio aquí
+
                     // Ejemplo: imprimir la calificación
                     print('Estrellas seleccionadas: $_selectedStars');
                     print('Feedback: ${_feedbackController.text}');
+
+                    // Enviar feedback al backend
+                    try {
+                      bool ok = await backendService.sendFeedback(
+                        sessionId: sessionService.sessionId!,
+                        rating: _selectedStars,
+                        comment: _feedbackController.text.trim(),
+                      );
+                      if (!ok) print('Warning: feedback no guardado en backend.');
+                    } catch (e) {
+                      print('Error enviando feedback: $e');
+                    }
 
                     // 1. Cerrar diálogo de calificación
                     Navigator.of(dialogContext).pop();
