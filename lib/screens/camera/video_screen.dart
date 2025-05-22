@@ -346,6 +346,13 @@ class _VideoScreenState extends State<VideoScreen> {
       if (mounted) {
         Navigator.of(context).pop(); // Cierra el diálogo de carga
 
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('🎉 ¡Tu traducción está lista!'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+
         // Navegar a AnswerScreen pasando el mensaje corregido y sessionId
         Navigator.push(
           context,
