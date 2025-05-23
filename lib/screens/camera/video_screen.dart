@@ -21,12 +21,12 @@ import 'package:path_provider/path_provider.dart';
 
 class VideoScreen extends StatefulWidget {
   final String videoPath;
-  final bool useAssetVideo; // Añadido para decidir qué video usar
+  final bool useAssetVideo;
 
   const VideoScreen({
     Key? key,
     required this.videoPath,
-    this.useAssetVideo = false, // Por defecto es false
+    this.useAssetVideo = false,
   }) : super(key: key);
 
   @override
@@ -37,7 +37,9 @@ class _VideoScreenState extends State<VideoScreen> {
   late VideoPlayerController _controller;
   late Future<void> _initializeVideoPlayerFuture;
   late String _currentVideoPath;
-  final BackendService _backendService = BackendService(); // Instancia de BackendService
+  final BackendService _backendService = BackendService();
+  bool _isCancelled = false;
+  bool _isProcessing = false; // Nueva variable para controlar el estado de procesamiento
 
   @override
   void initState() {
@@ -47,7 +49,6 @@ class _VideoScreenState extends State<VideoScreen> {
   }
 
   void _initializeVideoPlayer() {
-    // Cargar el video desde la ruta proporcionada
     _controller = VideoPlayerController.file(File(_currentVideoPath));
     _initializeVideoPlayerFuture = _controller.initialize();
     _controller.setLooping(false);
@@ -141,26 +142,22 @@ class _VideoScreenState extends State<VideoScreen> {
 
       if (response.statusCode == 200) {
         var jsonData = json.decode(utf8.decode(response.bodyBytes));
-
-        // Extraer el texto corregido
         String correctedText = jsonData['corrected_text'];
 
-        // Si el texto corregido comienza con 'Respuesta: "', lo eliminamos
         if (correctedText.startsWith('Respuesta: "')) {
-          correctedText = correctedText.substring(11, correctedText.length - 1); // Eliminar 'Respuesta: "' y el último '"'
+          correctedText = correctedText.substring(11, correctedText.length - 1);
         }
 
         return correctedText;
       } else {
         print('Error al obtener el texto corregido: ${response.statusCode}');
-        return text; // Devolver el texto original si hay un error
+        return text;
       }
     } catch (e) {
       print('Exception al obtener el texto corregido: $e');
-      return text; // Devolver el texto original si hay una excepción
+      return text;
     }
   }
-
 
   Widget _futureBuilder(BuildContext context) {
     return FutureBuilder(
@@ -171,7 +168,7 @@ class _VideoScreenState extends State<VideoScreen> {
             child: AspectRatio(
               aspectRatio: _controller.value.aspectRatio,
               child: RotatedBox(
-                quarterTurns: 1, // Cambia este valor si necesitas más ajustes
+                quarterTurns: 1,
                 child: VideoPlayer(_controller),
               ),
             ),
@@ -194,12 +191,10 @@ class _VideoScreenState extends State<VideoScreen> {
         children: [
           Expanded(
             child: ElevatedButton(
-              onPressed: () async {
-                // 1. Detener y liberar el reproductor de video
+              onPressed: _isProcessing ? null : () async {
                 await _controller.pause();
                 await _controller.dispose();
 
-                // 2. Eliminar el archivo temporal de video si es necesario
                 try {
                   final videoFile = File(_currentVideoPath);
                   if (await videoFile.exists()) {
@@ -209,15 +204,15 @@ class _VideoScreenState extends State<VideoScreen> {
                   print('Error al eliminar el archivo de video: $e');
                 }
 
-                // 3. Reinicializar la cámara y navegar
                 if (mounted) {
                   await CameraControllerService.resetCamera();
                   await ConversationNavigator.navigateToCameraScreen(context);
                 }
               },
               style: ButtonStyle(
-                backgroundColor:
-                MaterialStateProperty.all(const Color(0xfff7a8892)),
+                backgroundColor: MaterialStateProperty.all(
+                    _isProcessing ? Colors.grey : const Color(0xfff7a8892)
+                ),
                 foregroundColor: MaterialStateProperty.all(Colors.white),
               ),
               child: const Text("Volver a grabar"),
@@ -226,15 +221,16 @@ class _VideoScreenState extends State<VideoScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: ElevatedButton(
-              onPressed: () {
+              onPressed: _isProcessing ? null : () {
                 _showLoadingDialogAndNavigate();
               },
               style: ButtonStyle(
-                backgroundColor:
-                MaterialStateProperty.all(const Color(0xFFDB5050)),
+                backgroundColor: MaterialStateProperty.all(
+                    _isProcessing ? Colors.grey : const Color(0xFFDB5050)
+                ),
                 foregroundColor: MaterialStateProperty.all(Colors.white),
               ),
-              child: const Text("Traducir"),
+              child: Text(_isProcessing ? "Procesando..." : "Traducir"),
             ),
           )
         ],
@@ -242,7 +238,39 @@ class _VideoScreenState extends State<VideoScreen> {
     );
   }
 
+  // Método para cancelar el proceso
+  void _cancelTranslation() {
+    setState(() {
+      _isCancelled = true;
+      _isProcessing = false;
+    });
+
+    // Mostrar mensaje de confirmación
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('🚫 Traducción cancelada'),
+        duration: Duration(seconds: 2),
+        backgroundColor: Colors.orange,
+      ),
+    );
+  }
+
+  // Método para reiniciar el proceso (Escenario 2)
+  void _resetTranslationProcess() {
+    setState(() {
+      _isCancelled = false;
+      _isProcessing = false;
+    });
+  }
+
   Future<void> _showLoadingDialogAndNavigate() async {
+    // Reiniciar el estado al comenzar una nueva traducción
+    _resetTranslationProcess();
+
+    setState(() {
+      _isProcessing = true;
+    });
+
     showDialog(
       barrierDismissible: false,
       context: context,
@@ -266,38 +294,58 @@ class _VideoScreenState extends State<VideoScreen> {
                   fontSize: 16,
                 ),
               ),
+              SizedBox(height: 10),
+              Text(
+                "Puedes cancelar en cualquier momento",
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 12,
+                ),
+              ),
             ],
           ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _cancelTranslation();
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                  "Cancelar",
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  )
+              ),
+            ),
+          ],
         );
       },
     );
 
     try {
       final sessionService = Provider.of<SessionService>(context, listen: false);
-      // Verificar si ya existe un sessionId activo
       String? sessionId = sessionService.sessionId;
 
-      // Si no existe un sessionId, iniciar una nueva sesión
       if (sessionId == null) {
         sessionId = await _backendService.startSession();
-        sessionService.setSessionId(sessionId!); // Almacenar el nuevo sessionId en el SessionService
+        sessionService.setSessionId(sessionId!);
       }
 
-      // URL HACIA EL BACKEND DEL MODELO
-      // ANTIGUA : https://lsp-api-447652637002.southamerica-west1.run.app/predict
-      // NUEVA : https://lsp-api-447652637002.southamerica-west1.run.app/predict
-      // NEUVA V2: https://lsp-api-447652637002.southamerica-west1.run.app/predict
+      // Verificar cancelación antes de continuar
+      if (_isCancelled) {
+        if (mounted) Navigator.of(context).pop();
+        return;
+      }
+
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('https://lsp-api-447652637002.southamerica-west1.run.app/predict'),
       );
 
-
-      // Variable para el archivo de video
       File? videoFile;
 
       if (widget.useAssetVideo) {
-        // Leer el video de los assets y escribirlo en un archivo temporal
         final byteData = await rootBundle.load('assets/videos/sample_video.mp4');
         final tempDir = await getTemporaryDirectory();
         final tempVideoPath = '${tempDir.path}/sample_video.mp4';
@@ -305,55 +353,83 @@ class _VideoScreenState extends State<VideoScreen> {
           byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
         );
       } else {
-        // Usar el video de _currentVideoPath
         videoFile = File(_currentVideoPath);
       }
 
-      // Agregar el archivo de video a la solicitud
+      // Verificar cancelación antes de enviar la request
+      if (_isCancelled) {
+        if (mounted) Navigator.of(context).pop();
+        return;
+      }
+
       request.files.add(
         await http.MultipartFile.fromPath(
           'video',
-          _currentVideoPath, // Usar la ruta del video grabado
+          _currentVideoPath,
           contentType: MediaType('video', 'mp4'),
         ),
       );
 
-      //Si el servicio está caído , usar un mock
       const bool useMockTranslation = true;
       String translatedMessage;
+
+      if (_isCancelled) {
+        if (mounted) Navigator.of(context).pop();
+        return;
+      }
+
       if (useMockTranslation) {
+        // Simular tiempo de procesamiento
+        await Future.delayed(const Duration(seconds: 2));
+
+        // Verificar cancelación después del delay
+        if (_isCancelled) {
+          if (mounted) Navigator.of(context).pop();
+          return;
+        }
+
         translatedMessage = "Esta es una traducción por defecto para continuar con el desarrollo.";
       } else {
-        // Enviar la solicitud al primer backend
         var response = await request.send();
         if (response.statusCode == 200) {
           var responseData = await response.stream.bytesToString();
           var jsonData = json.decode(responseData);
           translatedMessage = jsonData['sentence'] ?? "Mensaje vacío";
         } else {
-          // fallback en caso de status!=200
           translatedMessage = "Traducción no disponible, usando traducción por defecto.";
         }
       }
 
-      // Imprimir el mensaje traducido en la consola
       print('Translated Message: $translatedMessage');
 
-      // Ahora enviar el texto traducido al segundo backend para corrección
+      if (_isCancelled) {
+        if (mounted) Navigator.of(context).pop();
+        return;
+      }
+
       String correctedMessage = await _getCorrectedText(translatedMessage);
 
-      // Cerrar el diálogo de carga
+      if (_isCancelled) {
+        if (mounted) Navigator.of(context).pop();
+        return;
+      }
+
+      // Proceso completado exitosamente
+      setState(() {
+        _isProcessing = false;
+      });
+
       if (mounted) {
-        Navigator.of(context).pop(); // Cierra el diálogo de carga
+        Navigator.of(context).pop();
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('🎉 ¡Tu traducción está lista!'),
             duration: Duration(seconds: 3),
+            backgroundColor: Colors.green,
           ),
         );
 
-        // Navegar a AnswerScreen pasando el mensaje corregido y sessionId
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -365,31 +441,33 @@ class _VideoScreenState extends State<VideoScreen> {
         );
       }
     } catch (e) {
-      // Manejar excepciones
       print('Exception: $e');
-      // Cerrar el diálogo de carga
+
+      setState(() {
+        _isProcessing = false;
+      });
+
       if (mounted) {
         Navigator.of(context).pop();
+
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Error'),
+            content: const Text('Error al procesar el video. Por favor, inténtalo de nuevo.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Aceptar'),
+              ),
+            ],
+          ),
+        );
       }
-      // Mostrar mensaje de error
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Error'),
-          content: Text('Error al procesar el video. Por favor, inténtalo de nuevo.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Aceptar'),
-            ),
-          ],
-        ),
-      );
     }
   }
 
   void _navigateToTrimmer() async {
-    // Navega directamente a TrimmerView sin verificar permisos
     final result = await Navigator.of(context).push<String>(
       MaterialPageRoute(
         builder: (context) => TrimmerView(File(_currentVideoPath)),
