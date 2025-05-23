@@ -46,7 +46,11 @@ class _AnswerScreenState extends State<AnswerScreen> {
   bool isCustomizingResponse = false;
   String? selectedVoiceName;
   final TextEditingController _responseController = TextEditingController();
-  List<String> suggestedReplies = [];
+
+  List<String> suggestedReplies = []; // Estas son las que se muestran en la UI
+  List<String> _originalSuggestedReplies = []; // Para guardar las originales antes de regenerar
+  bool _areRepliesRegenerated = false; // True si suggestedReplies son regeneradas
+
   bool isLoadingReplies = false;
   String communicationStyle = 'neutral';
   bool isRecordingCancelled = false;
@@ -61,18 +65,15 @@ class _AnswerScreenState extends State<AnswerScreen> {
     _loadCommunicationStyle();
     flutterTts.setCompletionHandler(() => onTtsComplete());
 
-    // Log para verificar si sessionId se pasó correctamente
     log("Session ID: ${widget.sessionId}");
 
-    // Agregar el mensaje inicial al historial de mensajes
     if (widget.initialMessage.isNotEmpty) {
-      _addMessageAndGetSuggestedReplies(
+      _addMessageAndGetInitialSuggestedReplies( // Cambiado para claridad y UH-30
         widget.initialMessage,
         MessageType.signLanguage,
       );
     }
 
-    // Programa el scroll al final después de que el widget se construya
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
@@ -81,77 +82,133 @@ class _AnswerScreenState extends State<AnswerScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
-    flutterTts.stop(); // Detener el TTS cuando la pantalla se destruya
+    flutterTts.stop();
     super.dispose();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadVoicePreference(); // Recargar preferencias si las dependencias cambian
+    _loadVoicePreference();
   }
 
   void _addMessage(String text, MessageType type) {
     _conversationService.addMessage(text, type);
-    // Programa el scroll al final después de que se actualice el estado
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
   }
 
-  void _addMessageAndGetSuggestedReplies(String text, MessageType type) {
+  // Wrapper para la carga inicial de sugerencias (cuando llega un nuevo mensaje de señas)
+  void _addMessageAndGetInitialSuggestedReplies(String text, MessageType type) {
     _addMessage(text, type);
-    _getSuggestedReplies(text);
+    // Llama a fetch con isRegeneration: false para establecer nuevas originales
+    _fetchSuggestedReplies(text, isRegeneration: false);
   }
 
   void _addMessageAndHandleUserResponse(String text, MessageType type) {
     _addMessage(text, type);
     _handleUserResponse(text);
+    // Nota: Después de que el usuario envía una respuesta, si la IA responde y luego
+    // el usuario ingresa otro mensaje de señas, se llamará a
+    // _addMessageAndGetInitialSuggestedReplies, lo que reseteará _areRepliesRegenerated.
   }
 
-  Future<void> _getSuggestedReplies(String userMessage) async {
+  // Modificado para UH-30: renombrado y con parámetro isRegeneration
+  Future<void> _fetchSuggestedReplies(String userMessage, {bool isRegeneration = false}) async {
     setState(() {
       isLoadingReplies = true;
+      // Si NO es una regeneración, estamos obteniendo un conjunto fresco de sugerencias.
+      // Reseteamos el estado de regeneración y las originales.
+      if (!isRegeneration) {
+        _areRepliesRegenerated = false;
+        _originalSuggestedReplies = [];
+      }
+      // Si ES una regeneración, _areRepliesRegenerated ya fue puesto a true por el llamador,
+      // y _originalSuggestedReplies ya contiene las originales de la tanda actual.
+      // suggestedReplies = []; // Opcional: limpiar visualmente mientras carga
     });
 
-    await _loadCommunicationStyle(); // Asegurarse de tener el estilo de comunicación actualizado
+    await _loadCommunicationStyle();
 
-    List<String>? replies = await _backendService.getSuggestReplies(
+    List<String>? newReplies = await _backendService.getSuggestReplies(
       userMessage: userMessage,
       style: communicationStyle,
       sessionId: widget.sessionId,
     );
 
-    if (replies != null) {
+    if (mounted) { // Buena práctica
       setState(() {
-        suggestedReplies = replies;
+        if (newReplies != null) {
+          suggestedReplies = newReplies; // Actualizar las respuestas visibles
+          if (!isRegeneration) {
+            // Guardar estas como las "originales" para esta tanda
+            _originalSuggestedReplies = List.from(newReplies);
+          }
+          // Si es regeneración, _originalSuggestedReplies no se toca.
+        } else {
+          // Manejar error, por ejemplo, limpiar sugerencias
+          suggestedReplies = [];
+          if (!isRegeneration) {
+            _originalSuggestedReplies = [];
+          }
+        }
         isLoadingReplies = false;
       });
-    } else {
-      isLoadingReplies = false; // ocultar indicador si hay un error
     }
   }
 
-  void _handleUserResponse(String responseText) async {
-    _conversationService.addMessage(responseText, MessageType.user);
+  // Para UH-30 Escenario 1: Confirmación de respuestas regeneradas
+  void _confirmAndSendRegeneratedReply(String reply) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmar Envío'),
+          content: Text('¿Deseas enviar la respuesta: "$reply"?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar', style: TextStyle(color: Colors.redAccent)),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Enviar', style: TextStyle(color: Colors.blueAccent)),
+              onPressed: () {
+                Navigator.of(context).pop(); // Cerrar diálogo
+                _addMessageAndHandleUserResponse(reply, MessageType.user);
+                ConversationNavigator.navigateToResponseDisplay(context, reply);
+                // Nota: _areRepliesRegenerated sigue siendo true. Si el usuario quiere regenerar OTRA VEZ
+                // antes de un nuevo mensaje de señas, se basará en las mismas _originalSuggestedReplies.
+                // Se reseteará a false cuando llegue un nuevo mensaje de señas (_addMessageAndGetInitialSuggestedReplies).
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
-    // Enviar la respuesta del usuario al backend
+  Future<void> _handleUserResponse(String responseText) async {
+    // _conversationService.addMessage(responseText, MessageType.user); // Ya se añade en _addMessageAndHandleUserResponse
+
     bool success = await _backendService.sendUserResponse(
       userResponse: responseText,
       sessionId: widget.sessionId,
     );
 
     if (success) {
-      // Navegar a la siguiente pantalla o actualizar la UI según sea necesario
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ResponseDisplayScreen(response: responseText),
-        ),
-      );
+      // La navegación ya se hace en el onTap de OptionWidget y en _confirmAndSendRegeneratedReply
+      // Navigator.push(
+      //   context,
+      //   MaterialPageRoute(
+      //     builder: (context) => ResponseDisplayScreen(response: responseText),
+      //   ),
+      // );
     } else {
-      // Manejar el error según sea necesario
       print("Error al enviar la respuesta del usuario al backend");
+      // Considerar mostrar un SnackBar o mensaje de error al usuario
     }
   }
 
@@ -171,7 +228,6 @@ class _AnswerScreenState extends State<AnswerScreen> {
   Future<void> _loadVoicePreference() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      // Si no hay preferencia guardada, usa la voz masculina por defecto
       selectedVoiceName = prefs.getString('voice_name') ?? 'es-es-x-eef-local';
     });
   }
@@ -182,10 +238,9 @@ class _AnswerScreenState extends State<AnswerScreen> {
       context,
       MaterialPageRoute(builder: (context) => const SettingsScreen()),
     );
-    await _loadVoicePreference(); // Recargar la preferencia después de regresar
+    await _loadVoicePreference();
   }
 
-  // Método para hacer scroll hasta el final
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
@@ -198,33 +253,26 @@ class _AnswerScreenState extends State<AnswerScreen> {
 
   Future<void> _playText(String text, int index) async {
     if (playingIndex == index) {
-      // Si el índice del mensaje es el mismo, detén la reproducción
       await flutterTts.stop();
       setState(() {
-        playingIndex = null; // No hay ningún mensaje reproduciéndose
+        playingIndex = null;
       });
       return;
     }
-
     try {
-      // Configurar la voz según la preferencia guardada
       String locale =
           predefinedVoices[selectedVoiceName]?['locale'] ?? 'es-ES';
-
       await flutterTts.setLanguage(locale);
       await flutterTts.setVoice({
         'name': selectedVoiceName!,
         'locale': locale,
       });
-
       await flutterTts.setSpeechRate(0.5);
       await flutterTts.setPitch(1.0);
       await flutterTts.setVolume(1.0);
-
       setState(() {
-        playingIndex = index; // Actualiza el índice del mensaje que se está reproduciendo
+        playingIndex = index;
       });
-
       await flutterTts.speak(text);
     } catch (e) {
       print("Error al reproducir el texto: $e");
@@ -246,9 +294,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () async {
-              _navigateToSettings();
-            },
+            onPressed: _navigateToSettings,
           ),
         ],
       ),
@@ -282,8 +328,8 @@ class _AnswerScreenState extends State<AnswerScreen> {
                   Expanded(
                     child: TextField(
                       controller: _responseController,
-                      maxLines: 5, // Permite que el TextField se expanda en líneas.
-                      minLines: 1, // Establece el mínimo número de líneas.
+                      maxLines: 5,
+                      minLines: 1,
                       decoration: InputDecoration(
                         hintText: 'Mensaje',
                         hintStyle: const TextStyle(color: Color(0xFFD9D9D9)),
@@ -322,21 +368,16 @@ class _AnswerScreenState extends State<AnswerScreen> {
                         if (_responseController.text.isNotEmpty) {
                           setState(() {
                             String responseText = _responseController.text;
-                            _addMessageAndHandleUserResponse(
+                            _addMessageAndHandleUserResponse( // Modificado para usar la función centralizada
                               responseText,
                               MessageType.user,
                             );
                             _responseController.clear();
                             isCustomizingResponse = false;
 
-                            Navigator.push(
+                            ConversationNavigator.navigateToResponseDisplay( // Asegurar navegación
                               context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    ResponseDisplayScreen(
-                                      response: responseText,
-                                    ),
-                              ),
+                              responseText,
                             );
                           });
                         }
@@ -363,8 +404,8 @@ class _AnswerScreenState extends State<AnswerScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Icon(
-                        Icons.sync,
+                      Icon( // Considerar cambiar este ícono o su lógica si es necesario
+                        Icons.sync, // Este ícono podría ser confuso ahora
                         color: Colors.grey[700],
                       ),
                     ],
@@ -377,7 +418,7 @@ class _AnswerScreenState extends State<AnswerScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     constraints: const BoxConstraints(
-                      maxHeight: 250,
+                      maxHeight: 250, // Ajusta según sea necesario con los nuevos botones
                     ),
                     child: SingleChildScrollView(
                       child: Column(
@@ -403,28 +444,38 @@ class _AnswerScreenState extends State<AnswerScreen> {
                               OptionWidget(
                                 text: reply,
                                 onTap: () {
-                                  _addMessageAndHandleUserResponse(
-                                    reply,
-                                    MessageType.user,
-                                  );
-                                  ConversationNavigator.navigateToResponseDisplay(
-                                    context,
-                                    reply,
-                                  );
+                                  // UH-30 Condición para confirmación
+                                  if (_areRepliesRegenerated) {
+                                    _confirmAndSendRegeneratedReply(reply);
+                                  } else {
+                                    // Comportamiento original para respuestas no regeneradas
+                                    _addMessageAndHandleUserResponse(
+                                      reply,
+                                      MessageType.user,
+                                    );
+                                    ConversationNavigator.navigateToResponseDisplay(
+                                      context,
+                                      reply,
+                                    );
+                                  }
                                 },
                               ),
                               const SizedBox(height: 8),
                             ],
 
-                          //NUEVO BOTÓN "volver a generar"
+                          // Botón "Volver a generar"
                           Center(
                             child: GestureDetector(
-                              onTap: (){
+                              onTap: () {
                                 final lastSignLanguageMsg = _conversationService.messages.lastWhere(
                                       (msg) => msg.type == MessageType.signLanguage,
-                                  orElse: () => ChatMessage(widget.initialMessage, MessageType.signLanguage),
+                                  orElse: () => ChatMessage(widget.initialMessage, MessageType.signLanguage), // Fallback
                                 );
-                                _getSuggestedReplies(lastSignLanguageMsg.text);
+                                // UH-30: Marcar que estamos a punto de regenerar
+                                setState(() {
+                                  _areRepliesRegenerated = true;
+                                });
+                                _fetchSuggestedReplies(lastSignLanguageMsg.text, isRegeneration: true);
                               },
                               child: const Text(
                                 'Volver a generar',
@@ -436,7 +487,32 @@ class _AnswerScreenState extends State<AnswerScreen> {
                                 ),
                               ),
                             ),
-                          )
+                          ),
+                          const SizedBox(height: 8), // Espacio antes del nuevo botón
+
+                          // UH-30 Escenario 2: Botón para revertir a originales
+                          if (_areRepliesRegenerated) ...[
+                            Center(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    suggestedReplies = List.from(_originalSuggestedReplies);
+                                    _areRepliesRegenerated = false; // Ya no son regeneradas
+                                  });
+                                },
+                                child: const Text(
+                                  'Usar respuestas originales',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    decoration: TextDecoration.underline,
+                                    color: Color(0xFFE0E0E0), // Un color diferente, ej. blanco más claro o un acento
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12), // Espacio después del nuevo botón
+                          ]
                         ],
                       ),
                     ),
@@ -493,7 +569,6 @@ class _AnswerScreenState extends State<AnswerScreen> {
     );
   }
 
-  /// MÉTODO CON AJUSTES PARA EVITAR PROBLEMAS AL CANCELAR
   void _listen() async {
     if (!isListening) {
       bool available = await _speech.initialize(
@@ -509,13 +584,12 @@ class _AnswerScreenState extends State<AnswerScreen> {
       if (available) {
         setState(() {
           isListening = true;
-          isRecordingCancelled = false; // Reinicia el indicador
+          isRecordingCancelled = false;
         });
 
-        // Muestra el diálogo que permanece abierto hasta ACEPTAR o CANCELAR
         showDialog(
           context: context,
-          barrierDismissible: false, // Evitar que se cierre al tocar fuera del diálogo
+          barrierDismissible: false,
           builder: (context) {
             return AlertDialog(
               shape: RoundedRectangleBorder(
@@ -546,30 +620,28 @@ class _AnswerScreenState extends State<AnswerScreen> {
                 ],
               ),
               actions: [
-                // Botón Aceptar
                 TextButton(
                   onPressed: () {
                     setState(() {
                       isListening = false;
                     });
-                    _speech.stop(); // Detiene el reconocimiento
-                    Navigator.of(context).pop(); // Cierra el pop-up
+                    _speech.stop();
+                    Navigator.of(context).pop();
                   },
                   child: const Text(
                     "Aceptar",
                     style: TextStyle(color: Colors.blue),
                   ),
                 ),
-                // Botón Cancelar
                 TextButton(
                   onPressed: () {
                     setState(() {
                       isListening = false;
-                      isRecordingCancelled = true; // Indica que se canceló
-                      _responseController.clear(); // Limpia el texto
+                      isRecordingCancelled = true;
+                      _responseController.clear();
                     });
-                    _speech.stop(); // Detener el reconocimiento
-                    Navigator.of(context).pop(); // Cerrar el pop-up
+                    _speech.stop();
+                    Navigator.of(context).pop();
                   },
                   child: const Text(
                     "Cancelar",
@@ -581,14 +653,11 @@ class _AnswerScreenState extends State<AnswerScreen> {
           },
         );
 
-        // Aquí se inicia la escucha y se va capturando la voz
         _speech.listen(
           localeId: 'es_ES',
           onResult: (val) => setState(() {
             if (!isRecordingCancelled) {
               _responseController.text = val.recognizedWords;
-              // Antes se cerraba el pop-up de inmediato al reconocer algo;
-              // lo removimos para que no regrese a la pantalla anterior
             }
           }),
         );
