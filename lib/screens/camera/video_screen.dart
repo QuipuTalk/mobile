@@ -340,9 +340,8 @@ class _VideoScreenState extends State<VideoScreen> {
 
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('https://lsp-api-447652637002.southamerica-west1.run.app/predict'),
+        Uri.parse('https://lsp-api-634493250243.southamerica-west1.run.app/predict'),
       );
-
       File? videoFile;
 
       if (widget.useAssetVideo) {
@@ -370,7 +369,7 @@ class _VideoScreenState extends State<VideoScreen> {
         ),
       );
 
-      const bool useMockTranslation = true;
+      const bool useMockTranslation = false;
       String translatedMessage;
 
       if (_isCancelled) {
