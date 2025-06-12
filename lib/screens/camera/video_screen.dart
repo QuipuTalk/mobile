@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
@@ -17,7 +18,6 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
-
 
 class VideoScreen extends StatefulWidget {
   final String videoPath;
@@ -39,7 +39,15 @@ class _VideoScreenState extends State<VideoScreen> {
   late String _currentVideoPath;
   final BackendService _backendService = BackendService();
   bool _isCancelled = false;
-  bool _isProcessing = false; // Nueva variable para controlar el estado de procesamiento
+  bool _isProcessing = false;
+
+  // Variables para el indicador de progreso
+  double _progressValue = 0.0;
+  Timer? _progressTimer;
+  String _progressMessage = "Iniciando traducción...";
+  int _elapsedSeconds = 0;
+  bool _showDelayMessage = false;
+  StateSetter? _dialogSetState;
 
   @override
   void initState() {
@@ -56,6 +64,7 @@ class _VideoScreenState extends State<VideoScreen> {
 
   @override
   void dispose() {
+    _stopProgressSimulation();
     _controller.pause();
     _controller.dispose();
     super.dispose();
@@ -238,8 +247,61 @@ class _VideoScreenState extends State<VideoScreen> {
     );
   }
 
+
+  // Nuevos métodos para manejar el progreso
+  void _resetProgressState() {
+    _progressValue = 0.0;
+    _progressMessage = "Iniciando traducción...";
+    _elapsedSeconds = 0;
+    _showDelayMessage = false;
+    _stopProgressSimulation();
+  }
+
+  void _startProgressSimulation() {
+    _progressTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted && !_isCancelled) {
+        _elapsedSeconds++;
+
+        // Mostrar mensaje de delay después de 15 segundos
+        if (_elapsedSeconds >= 60 && !_showDelayMessage) {
+          _showDelayMessage = true;
+        }
+
+        // Actualizar tanto el widget principal como el diálogo
+        if (mounted) {
+          setState(() {});
+        }
+        if (_dialogSetState != null) {
+          _dialogSetState!(() {});
+        }
+      }
+    });
+  }
+
+  void _stopProgressSimulation() {
+    _progressTimer?.cancel();
+    _progressTimer = null;
+    _dialogSetState = null;
+  }
+
+  void _updateProgress(double value, String message) {
+    if (mounted && !_isCancelled) {
+      _progressValue = value;
+      _progressMessage = message;
+
+      // Actualizar tanto el widget principal como el diálogo
+      if (mounted) {
+        setState(() {});
+      }
+      if (_dialogSetState != null) {
+        _dialogSetState!(() {});
+      }
+    }
+  }
+
   // Método para cancelar el proceso
   void _cancelTranslation() {
+    _stopProgressSimulation();
     setState(() {
       _isCancelled = true;
       _isProcessing = false;
@@ -255,12 +317,13 @@ class _VideoScreenState extends State<VideoScreen> {
     );
   }
 
-  // Método para reiniciar el proceso (Escenario 2)
+  // Método para reiniciar el proceso
   void _resetTranslationProcess() {
     setState(() {
       _isCancelled = false;
       _isProcessing = false;
     });
+    _resetProgressState();
   }
 
   Future<void> _showLoadingDialogAndNavigate() async {
@@ -275,53 +338,112 @@ class _VideoScreenState extends State<VideoScreen> {
       barrierDismissible: false,
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          contentPadding: const EdgeInsets.all(50),
-          content: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(
-                color: Color(0xFF2D4554),
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setDialogState) {
+            // Guardar la referencia para que el Timer pueda usarla
+            _dialogSetState = setDialogState;
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              SizedBox(height: 20),
-              Text(
-                "El video se está procesando",
-                style: TextStyle(
-                  color: Color(0xFF2D4554),
-                  fontSize: 16,
+              contentPadding: const EdgeInsets.all(20),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Indicador de progreso lineal
+                  LinearProgressIndicator(
+                    value: _progressValue,
+                    backgroundColor: Colors.grey[300],
+                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2D4554)),
+                    minHeight: 8,
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Porcentaje de progreso
+                  Text(
+                    "${(_progressValue * 100).toInt()}%",
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2D4554),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Mensaje de estado
+                  Text(
+                    _progressMessage,
+                    style: const TextStyle(
+                      color: Color(0xFF2D4554),
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Tiempo transcurrido
+                  Text(
+                    "Tiempo: ${_elapsedSeconds}s",
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                    ),
+                  ),
+
+                  // Mensaje cuando toma mucho tiempo
+                  if (_showDelayMessage) ...[
+                    const SizedBox(height: 15),
+                    const Text(
+                      "⏱️ La traducción está tomando más tiempo del esperado.\n¿Deseas continuar esperando?",
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    _cancelTranslation();
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text(
+                    "Cancelar",
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                "Puedes cancelar en cualquier momento",
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                _cancelTranslation();
-                Navigator.of(context).pop();
-              },
-              child: const Text(
-                  "Cancelar",
-                  style: TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
-                  )
-              ),
-            ),
-          ],
+                if (_showDelayMessage)
+                  TextButton(
+                    onPressed: () {
+                      setDialogState(() {
+                        _showDelayMessage = false;
+                      });
+                    },
+                    child: const Text(
+                      "Continuar",
+                      style: TextStyle(
+                        color: Color(0xFF2D4554),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         );
       },
     );
+
+    // Iniciar el simulador de progreso
+    _startProgressSimulation();
 
     try {
       final sessionService = Provider.of<SessionService>(context, listen: false);
@@ -334,9 +456,12 @@ class _VideoScreenState extends State<VideoScreen> {
 
       // Verificar cancelación antes de continuar
       if (_isCancelled) {
+        _stopProgressSimulation();
         if (mounted) Navigator.of(context).pop();
         return;
       }
+
+      _updateProgress(0.2, "Preparando video...");
 
       var request = http.MultipartRequest(
         'POST',
@@ -357,9 +482,12 @@ class _VideoScreenState extends State<VideoScreen> {
 
       // Verificar cancelación antes de enviar la request
       if (_isCancelled) {
+        _stopProgressSimulation();
         if (mounted) Navigator.of(context).pop();
         return;
       }
+
+      _updateProgress(0.4, "Enviando video al servidor...");
 
       request.files.add(
         await http.MultipartFile.fromPath(
@@ -373,16 +501,21 @@ class _VideoScreenState extends State<VideoScreen> {
       String translatedMessage;
 
       if (_isCancelled) {
+        _stopProgressSimulation();
         if (mounted) Navigator.of(context).pop();
         return;
       }
 
+      _updateProgress(0.6, "Analizando lenguaje de señas...");
+
       if (useMockTranslation) {
         // Simular tiempo de procesamiento
         await Future.delayed(const Duration(seconds: 2));
+        _updateProgress(0.8, "Generando traducción...");
 
         // Verificar cancelación después del delay
         if (_isCancelled) {
+          _stopProgressSimulation();
           if (mounted) Navigator.of(context).pop();
           return;
         }
@@ -390,6 +523,8 @@ class _VideoScreenState extends State<VideoScreen> {
         translatedMessage = "Esta es una traducción por defecto para continuar con el desarrollo.";
       } else {
         var response = await request.send();
+        _updateProgress(0.8, "Procesando respuesta...");
+
         if (response.statusCode == 200) {
           var responseData = await response.stream.bytesToString();
           var jsonData = json.decode(responseData);
@@ -402,18 +537,27 @@ class _VideoScreenState extends State<VideoScreen> {
       print('Translated Message: $translatedMessage');
 
       if (_isCancelled) {
+        _stopProgressSimulation();
         if (mounted) Navigator.of(context).pop();
         return;
       }
 
+      _updateProgress(0.9, "Corrigiendo texto...");
       String correctedMessage = await _getCorrectedText(translatedMessage);
 
       if (_isCancelled) {
+        _stopProgressSimulation();
         if (mounted) Navigator.of(context).pop();
         return;
       }
 
       // Proceso completado exitosamente
+      _updateProgress(1.0, "¡Traducción completada!");
+
+      // Esperar un momento para mostrar el 100%
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      _stopProgressSimulation();
       setState(() {
         _isProcessing = false;
       });
@@ -441,6 +585,7 @@ class _VideoScreenState extends State<VideoScreen> {
       }
     } catch (e) {
       print('Exception: $e');
+      _stopProgressSimulation();
 
       setState(() {
         _isProcessing = false;
